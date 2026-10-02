@@ -46,6 +46,7 @@ export function parseTaskCommand(msg: IncomingMessage, botUsername: string): Par
   const assignees: AssigneeRef[] = [];
   const seen = new Set<string>();
   const cut: Array<[number, number]> = [[0, command.length]];
+  const bareNames: string[] = [];
 
   for (const e of entities) {
     if (e.type === 'mention') {
@@ -55,7 +56,10 @@ export function parseTaskCommand(msg: IncomingMessage, botUsername: string): Par
       seen.add(`n:${username}`);
       assignees.push({ kind: 'username', username });
     } else if (e.type === 'text_mention' && e.user) {
-      cut.push([e.offset, e.offset + e.length]);
+      // клиент может оставить набранную «@» перед именем человека без username
+      const start = text[e.offset - 1] === '@' ? e.offset - 1 : e.offset;
+      cut.push([start, e.offset + e.length]);
+      bareNames.push(text.slice(e.offset, e.offset + e.length));
       if (seen.has(`u:${e.user.id}`)) continue;
       seen.add(`u:${e.user.id}`);
       assignees.push({ kind: 'user', user: e.user });
@@ -65,7 +69,9 @@ export function parseTaskCommand(msg: IncomingMessage, botUsername: string): Par
   const rest = normalize(removeRanges(text, cut));
   const reply = msg.reply_to_message;
   const base = reply ? normalize(reply.text ?? reply.caption ?? '') : '';
-  const full = [base, rest].filter(Boolean).join('\n');
+  let full = [base, rest].filter(Boolean).join('\n');
+  // у человека без username имя и есть упоминание: задача без другого текста называется по нему
+  if (!full && bareNames.length) full = bareNames.join(', ');
   if (!full) return { ok: false, reason: 'empty_text' };
 
   return { ok: true, text: full, assignees, sourceMessageId: reply ? reply.message_id : msg.message_id };
