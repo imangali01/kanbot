@@ -41,6 +41,9 @@ export function Analytics({ chatId, title, onBack }: { chatId: number; title: st
   const [picked, setPicked] = useState<number | null>(null);
 
   const [attempt, setAttempt] = useState(0);
+  const [assignee, setAssignee] = useState<string | null>(null);
+  // варианты фильтра храним отдельно: при перезагрузке data пустая, а ряд чипов не должен пропадать
+  const [options, setOptions] = useState<AnalyticsView['assignees']>([]);
 
   useEffect(() => {
     // ответ на прошлый период может прийти позже текущего — такой ответ отбрасываем
@@ -48,11 +51,12 @@ export function Analytics({ chatId, title, onBack }: { chatId: number; title: st
     setPicked(null);
     setError(null);
     setData(null);
-    api<AnalyticsView>(`/api/app/chats/${chatId}/analytics?days=${days}`)
-      .then((d) => current && setData(d))
+    const filter = assignee === null ? '' : `&assignee=${encodeURIComponent(assignee)}`;
+    api<AnalyticsView>(`/api/app/chats/${chatId}/analytics?days=${days}${filter}`)
+      .then((d) => { if (current) { setData(d); setOptions(d.assignees); } })
       .catch((e) => current && setError(errorText(e)));
     return () => { current = false; };
-  }, [chatId, days, attempt]);
+  }, [chatId, days, assignee, attempt]);
   useEffect(() => {
     const back = webApp()?.BackButton;
     if (!back) return;
@@ -79,6 +83,21 @@ export function Analytics({ chatId, title, onBack }: { chatId: number; title: st
           ))}
         </div>
       </header>
+
+      {options.length > 0 && (
+        <div className={s.anFilters} role="group" aria-label="Фильтр по исполнителю">
+          <button className={assignee === null ? s.filterOn : s.filter} aria-pressed={assignee === null} onClick={() => setAssignee(null)}>Все</button>
+          {options.map((o) => {
+            const on = assignee === o.key;
+            const pick = () => setAssignee(on ? null : o.key);
+            return o.key === 'none' ? (
+              <button key={o.key} className={on ? s.filterOn : s.filter} aria-pressed={on} onClick={pick}>{o.name}</button>
+            ) : (
+              <button key={o.key} className={on ? s.filterAvOn : s.filterAv} aria-pressed={on} onClick={pick}><Avatar name={o.name} size={24} />{o.name.split(' ')[0]}</button>
+            );
+          })}
+        </div>
+      )}
 
       {error && (
         <div className={s.center}>{error}<br /><button className={s.chipBtn} onClick={() => setAttempt((n) => n + 1)}>Повторить</button></div>
@@ -140,7 +159,7 @@ export function Analytics({ chatId, title, onBack }: { chatId: number; title: st
                 <p className={s.anNote}>Справа — медиана дней от создания до закрытия</p>
               </section>
 
-              <section className={s.anCard}>
+              {assignee === null && <section className={s.anCard}>
                 <h2 className={s.anH2}>По людям</h2>
                 {data.people.map((p) => (
                   <div key={p.key} className={s.personRow}>
@@ -155,7 +174,7 @@ export function Analytics({ chatId, title, onBack }: { chatId: number; title: st
                   </div>
                 ))}
                 <p className={s.anNote}>Задача с несколькими исполнителями учитывается у каждого</p>
-              </section>
+              </section>}
             </>
           )}
         </>

@@ -50,4 +50,6 @@ export interface AnalyticsView {
   buckets: AnalyticsBucket[];
   byStars: AnalyticsStarRow[];
   people: AnalyticsPerson[];
+  /** все исполнители обоих периодов — варианты фильтра, от фильтра не зависят */
+  assignees: { key: string; name: string }[];
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { analyticsSince, buildAnalytics, parseAnalyticsDays, type ClosedTask } from './analytics';
+import { analyticsSince, buildAnalytics, isAssigneeFilter, parseAnalyticsDays, type ClosedTask } from './analytics';
 
 // 2026-10-02 12:00 Алматы (UTC+5), пятница
 const NOW = new Date('2026-10-02T07:00:00Z');
@@ -99,5 +99,46 @@ describe('buildAnalytics', () => {
       { key: 'u:1', name: 'Анна Ли', byStars: [0, 0, 0, 0, 1], closed: 1, stars: 5 },
       { key: 'none', name: 'Без исполнителя', byStars: [0, 1, 0, 0, 0], closed: 1, stars: 2 },
     ]);
+  });
+});
+
+describe('фильтр по исполнителю', () => {
+  const tasks = [
+    task({ stars: 5, assignees: [ann, bob] }),
+    task({ stars: 1, assignees: [bob] }),
+    task({ stars: 2, assignees: [] }),
+    task({ stars: 4, assignees: [ann], doneAt: '2026-08-20T05:00:00Z' }), // прошлый период 30 дней: 04.08–02.09
+  ];
+
+  it('считает только задачи выбранного исполнителя, включая прошлый период', () => {
+    const v = buildAnalytics(tasks, 30, NOW, 'u:1');
+    expect(v.kpi.closed).toEqual({ value: 1, prev: 1 });
+    expect(v.kpi.stars).toEqual({ value: 5, prev: 4 });
+    expect(v.byStars[4].closed).toBe(1);
+    expect(v.people.map((p) => p.key)).toEqual(['u:1']);
+  });
+
+  it('«Без исполнителя» — только задачи без исполнителей', () => {
+    const v = buildAnalytics(tasks, 30, NOW, 'none');
+    expect(v.kpi.closed.value).toBe(1);
+    expect(v.kpi.stars.value).toBe(2);
+  });
+
+  it('список исполнителей для фильтра — из обоих периодов, не зависит от фильтра', () => {
+    const all = buildAnalytics(tasks, 30, NOW).assignees;
+    expect(all).toEqual([
+      { key: 'u:1', name: 'Анна Ли' },
+      { key: 'u:2', name: 'Боб Ким' },
+      { key: 'none', name: 'Без исполнителя' },
+    ]);
+    expect(buildAnalytics(tasks, 30, NOW, 'u:2').assignees).toEqual(all);
+  });
+
+  it('проверка формата ключа фильтра', () => {
+    expect(isAssigneeFilter('u:934716581')).toBe(true);
+    expect(isAssigneeFilter('n:some_user')).toBe(true);
+    expect(isAssigneeFilter('none')).toBe(true);
+    expect(isAssigneeFilter('u:abc')).toBe(false);
+    expect(isAssigneeFilter("n:x'; drop")).toBe(false);
   });
 });

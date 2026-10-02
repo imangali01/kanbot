@@ -6,6 +6,15 @@ export interface ClosedTask { stars: number; createdAt: string; doneAt: string; 
 export const ANALYTICS_DAYS: AnalyticsDays[] = [7, 30, 90];
 const NO_ASSIGNEE = { key: 'none', name: 'Без исполнителя' };
 
+const ASSIGNEE_FILTER = /^(u:\d{1,20}|n:[A-Za-z0-9_]{1,64}|none)$/;
+
+export function isAssigneeFilter(raw: string): boolean {
+  return ASSIGNEE_FILTER.test(raw);
+}
+
+const matches = (t: ClosedTask, assignee: string | null) =>
+  assignee === null || (assignee === NO_ASSIGNEE.key ? t.assignees.length === 0 : t.assignees.some((a) => a.key === assignee));
+
 export function parseAnalyticsDays(raw: string | null): AnalyticsDays | null {
   if (raw === null) return 30;
   const n = Number(raw);
@@ -59,11 +68,15 @@ function buildBuckets(from: string, to: string, days: AnalyticsDays): AnalyticsB
   return out;
 }
 
-export function buildAnalytics(tasks: ClosedTask[], days: AnalyticsDays, now: Date): AnalyticsView {
+export function buildAnalytics(tasks: ClosedTask[], days: AnalyticsDays, now: Date, assignee: string | null = null): AnalyticsView {
   const { from, to, prevFrom, prevTo } = periods(days, now);
   const doneDate = (t: ClosedTask) => localDate(new Date(t.doneAt));
-  const current = tasks.filter((t) => doneDate(t) >= from && doneDate(t) <= to);
-  const previous = tasks.filter((t) => doneDate(t) >= prevFrom && doneDate(t) <= prevTo);
+  const inRange = tasks.filter((t) => doneDate(t) >= prevFrom && doneDate(t) <= to);
+  const options = new Map<string, string>();
+  for (const t of inRange) for (const a of t.assignees.length ? t.assignees : [NO_ASSIGNEE]) options.set(a.key, a.name);
+  const picked = inRange.filter((t) => matches(t, assignee));
+  const current = picked.filter((t) => doneDate(t) >= from);
+  const previous = picked.filter((t) => doneDate(t) <= prevTo);
 
   const buckets = buildBuckets(from, to, days);
   const leadDays: number[][] = [[], [], [], [], []];
@@ -74,7 +87,7 @@ export function buildAnalytics(tasks: ClosedTask[], days: AnalyticsDays, now: Da
     const done = doneDate(t);
     buckets.find((b) => done >= b.start && done <= b.end)!.byStars[i]++;
     leadDays[i].push(dayNumber(done) - dayNumber(localDate(new Date(t.createdAt))));
-    const who = t.assignees.length ? t.assignees : [NO_ASSIGNEE];
+    const who = (t.assignees.length ? t.assignees : [NO_ASSIGNEE]).filter((a) => assignee === null || a.key === assignee);
     for (const a of who) {
       const p = people.get(a.key) ?? { key: a.key, name: a.name, byStars: zeros(), closed: 0, stars: 0 };
       p.byStars[i]++;
@@ -95,6 +108,9 @@ export function buildAnalytics(tasks: ClosedTask[], days: AnalyticsDays, now: Da
     },
     buckets,
     byStars: leadDays.map((d, i) => ({ stars: i + 1, closed: d.length, medianDays: median(d) })),
+    assignees: [...options].map(([key, name]) => ({ key, name })).sort(
+      (a, b) => Number(a.key === 'none') - Number(b.key === 'none') || a.name.localeCompare(b.name, 'ru'),
+    ),
     people: [...people.values()].sort(
       (a, b) => Number(a.key === 'none') - Number(b.key === 'none') || b.stars - a.stars || b.closed - a.closed || a.name.localeCompare(b.name, 'ru'),
     ),

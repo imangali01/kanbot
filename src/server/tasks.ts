@@ -317,7 +317,7 @@ export async function showInChat(taskId: number, userId: number): Promise<{ mode
   return { mode: 'pinged' };
 }
 
-export async function loadAnalytics(chat: ChatRow, days: AnalyticsDays, now: Date): Promise<AnalyticsView> {
+export async function loadAnalytics(chat: ChatRow, days: AnalyticsDays, now: Date, assignee: string | null): Promise<AnalyticsView> {
   const items = await fetchCards(chat.id, undefined, analyticsSince(days, now));
   const closed: ClosedTask[] = items.map(({ row, assignees }) => ({
     stars: row.stars,
@@ -326,5 +326,5 @@ export async function loadAnalytics(chat: ChatRow, days: AnalyticsDays, now: Dat
     deadline: row.deadline,
     assignees,
   }));
-  return buildAnalytics(closed, days, now);
+  return buildAnalytics(closed, days, now, assignee);
 }
