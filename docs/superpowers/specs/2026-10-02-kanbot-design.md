@@ -13,7 +13,7 @@ Telegram-бот, который превращает сообщения в гр�
 
 - **Next.js (App Router, TypeScript)** — один проект: Mini App, админка, API, webhook бота.
 - **Vercel** — проект `kanbot`, связан с GitHub `imangali01/kanbot`. Локального docker нет; разработка = деплой на Vercel.
-- **Supabase Postgres** через **Drizzle ORM** (transaction pooler, порт 6543). Supabase SDK не используем — переносимость сохраняется.
+- **Supabase Postgres** через **Drizzle ORM** (transaction pooler, порт 6543). Supabase SDK не используем — переносимость сохраняется. База в регионе `ap-south-1` (Мумбаи), поэтому функции Vercel запускаются в регионе `bom1` (`vercel.json` → `regions`), иначе каждый запрос к БД идёт через океан.
 - **grammY** — обработка апдейтов Telegram в режиме webhook.
 - **@dnd-kit** — drag & drop.
 - **Vercel Cron** — ежедневный дайджест.
