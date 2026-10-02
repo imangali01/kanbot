@@ -5,7 +5,7 @@ import { ticketId } from '@/domain/ticketId';
 import { STATUSES, STATUS_TITLES, type BoardView, type Status, type TaskDetail } from '@/domain/types';
 import { api, errorText } from './api';
 import { Avatar } from './Avatar';
-import { IconBlock, IconCalendar, IconChat, IconSend, IconStar, IconTrash, IconUser, IconUsers } from './icons';
+import { IconCalendar, IconCheck, IconChevronDown, IconLock, IconMore, IconReply, IconSend, IconStar, IconTrash, IconUser, IconUsers } from './icons';
 import { Sheet } from './Sheet';
 import { confirmDialog, webApp } from './telegram';
 import s from './miniapp.module.css';
@@ -20,8 +20,23 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
   const [comment, setComment] = useState('');
   const [blockReason, setBlockReason] = useState<string | null>(null);
   const [pickAssignees, setPickAssignees] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // дропдауны закрываются по тапу мимо них
+  useEffect(() => {
+    if (!pickAssignees && !menuOpen) return;
+    const onDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (pickAssignees && !pickerRef.current?.contains(target)) setPickAssignees(false);
+      if (menuOpen && !menuRef.current?.contains(target)) setMenuOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [pickAssignees, menuOpen]);
 
   useEffect(() => {
     api<TaskDetail>(`/api/app/tasks/${taskId}`)
@@ -79,7 +94,8 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
   }
 
   async function remove() {
-    if (!(await confirmDialog('Удалить задачу? Это нельзя отменить.'))) return;
+    setMenuOpen(false);
+    if (!detail || !(await confirmDialog(`Вы точно хотите удалить задачу ${ticketId(detail.card.number)}? Это нельзя отменить.`))) return;
     try {
       await api(`/api/app/tasks/${taskId}`, { method: 'DELETE' });
       onChanged();
@@ -119,11 +135,21 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
             <span className={s.num}>{ticketId(card.number)}</span>
             <div className={s.seg} role="radiogroup" aria-label="Статус">
               {STATUSES.map((st) => (
-                <button key={st} role="radio" aria-checked={card.status === st} className={card.status === st ? s.segOn : s.segBtn} disabled={!card.canEdit || busy} onClick={() => card.status !== st && void changeStatus(st)}>
-                  {STATUS_TITLES[st]}
+                <button key={st} role="radio" aria-checked={card.status === st} className={card.status === st ? s[`segOn_${st}`] : s.segBtn} disabled={!card.canEdit || busy} onClick={() => card.status !== st && void changeStatus(st)}>
+                  <span className={s[`segDot_${st}`]} />{STATUS_TITLES[st]}
                 </button>
               ))}
             </div>
+            {card.canDelete && (
+              <div className={s.menuWrap} ref={menuRef}>
+                <button className={s.iconBtn} aria-label="Ещё" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><IconMore size={20} /></button>
+                {menuOpen && (
+                  <div className={s.menu} role="menu">
+                    <button className={s.menuItemDanger} role="menuitem" onClick={() => void remove()}><IconTrash size={18} />Удалить задачу</button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {card.canEditText ? (
@@ -142,7 +168,7 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
 
           {card.blocked && (
             <div className={s.banner}>
-              <IconBlock size={18} />
+              <IconLock size={18} />
               <div className={s.bannerBody}>
                 <div>{card.blockedReason}</div>
                 {card.canEdit && <button className={s.linkBtn} disabled={busy} onClick={() => void run(`/api/app/tasks/${taskId}/block`, 'DELETE')}>Снять блок</button>}
@@ -154,27 +180,39 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
             <div className={s.prop}>
               <span className={s.propIcon}><IconUsers size={18} /></span>
               <span className={s.propLabel}>Исполнители</span>
-              <div className={s.propValue}>
-                {!pickAssignees && card.assignees.length === 0 && <span className={s.muted}>Не назначены</span>}
-                {!pickAssignees && card.assignees.map((a) => (
-                  <span key={a.key} className={s.pill}><Avatar name={a.name} size={22} /><span className={s.pillText}>{a.name.split(' ')[0]}</span></span>
-                ))}
-                {pickAssignees && pickable.map((m) => (
-                  <button
-                    key={m.key}
-                    className={selectedKeys.has(m.key) ? s.pillOn : s.pillBtn}
-                    disabled={busy}
-                    aria-pressed={selectedKeys.has(m.key)}
-                    onClick={() => {
-                      const next = new Set(selectedKeys);
-                      if (next.has(m.key)) next.delete(m.key); else next.add(m.key);
-                      void patch({ assigneeKeys: [...next] });
-                    }}
-                  >
-                    <Avatar name={m.name} size={22} /><span className={s.pillText}>{m.name.split(' ')[0]}</span>
-                  </button>
-                ))}
-                {card.canEdit && <button className={s.pillGhost} onClick={() => setPickAssignees(!pickAssignees)}>{pickAssignees ? 'Готово' : card.assignees.length ? 'Изменить' : 'Назначить'}</button>}
+              <div className={s.picker} ref={pickerRef}>
+                <button className={s.pickerToggle} disabled={!card.canEdit || busy} aria-haspopup="listbox" aria-expanded={pickAssignees} onClick={() => setPickAssignees(!pickAssignees)}>
+                  {card.assignees.length === 0 && <span className={s.muted}>{card.canEdit ? 'Назначить' : 'Не назначены'}</span>}
+                  {card.assignees.map((a) => (
+                    <span key={a.key} className={s.pill}><Avatar name={a.name} size={22} /><span className={s.pillText}>{a.name.split(' ')[0]}</span></span>
+                  ))}
+                  {card.canEdit && <span className={s.pickerChevron}><IconChevronDown size={16} /></span>}
+                </button>
+                {pickAssignees && (
+                  <div className={s.dropdown} role="listbox" aria-multiselectable="true" aria-label="Исполнители">
+                    {pickable.map((m) => {
+                      const on = selectedKeys.has(m.key);
+                      return (
+                        <button
+                          key={m.key}
+                          role="option"
+                          aria-selected={on}
+                          className={s.dropdownItem}
+                          disabled={busy}
+                          onClick={() => {
+                            const next = new Set(selectedKeys);
+                            if (on) next.delete(m.key); else next.add(m.key);
+                            void patch({ assigneeKeys: [...next] });
+                          }}
+                        >
+                          <Avatar name={m.name} size={26} />
+                          <span className={s.dropdownName}>{m.name}</span>
+                          <span className={on ? s.checkOn : s.check}>{on && <IconCheck size={14} />}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -212,9 +250,8 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
           </div>
 
           <div className={s.actions}>
-            <button className={s.btnPrimary} onClick={() => void showInChat()}><IconChat size={18} />Показать в чате</button>
-            {card.canEdit && !card.blocked && blockReason === null && <button className={s.btn} onClick={() => setBlockReason('')}>Заблокировать</button>}
-            {card.canDelete && <button className={s.btnDanger} onClick={() => void remove()} aria-label="Удалить задачу"><IconTrash size={20} /></button>}
+            <button className={s.chipBtnPrimary} onClick={() => void showInChat()}><IconReply size={13} />Показать в чате</button>
+            {card.canEdit && !card.blocked && blockReason === null && <button className={s.chipBtn} onClick={() => setBlockReason('')}><IconLock size={13} />Заблокировать</button>}
           </div>
 
           {blockReason !== null && (

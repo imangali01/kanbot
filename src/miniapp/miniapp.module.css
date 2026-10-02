@@ -97,13 +97,25 @@
 .sheetTitle { margin: 6px 0 14px; font-size: 20px; font-weight: 650; letter-spacing: -0.02em; }
 
 /* ───── карточка задачи ───── */
-.headRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.headRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
 .num { font-size: 14px; color: var(--ink-3); font-variant-numeric: tabular-nums; font-weight: 500; }
-.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 3px; border-radius: 13px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); flex: 1; max-width: 300px; }
-.segBtn { display: flex; align-items: center; justify-content: center; gap: 6px; height: 32px; border: 0; border-radius: 10px; background: transparent; color: var(--ink-2); font-size: 13px; font-weight: 550; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.seg { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 2px; padding: 3px; border-radius: 13px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); flex: 1; max-width: 300px; }
+.segBtn { display: flex; align-items: center; justify-content: center; gap: 5px; height: 32px; padding: 0 6px; border: 0; border-radius: 10px; background: transparent; color: var(--ink-2); font-size: 12.5px; font-weight: 550; white-space: nowrap; cursor: pointer; transition: background 0.15s, color 0.15s; }
 .segBtn:disabled { cursor: default; opacity: 0.6; }
 .segBtn:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 .segOn { composes: segBtn; background: var(--lift); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--edge-strong); }
+.segOn_todo { composes: segOn; }
+.segOn_in_progress { composes: segOn; background: var(--st-progress); color: #17181c; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
+.segOn_done { composes: segOn; background: var(--st-done); color: var(--paper); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
+.segDot_todo { composes: dot dot_todo; flex: none; }
+.segDot_in_progress { composes: dot dot_in_progress; flex: none; }
+.segDot_done { composes: dot dot_done; flex: none; }
+/* на цветной плашке точка того же цвета пропала бы — красим её в цвет текста */
+.segOn_in_progress > span, .segOn_done > span { background: currentColor; opacity: 0.7; }
+.menuWrap { position: relative; flex: none; }
+.menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 20; min-width: 190px; padding: 4px; border-radius: 14px; background: var(--lift); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 0 1px var(--edge-strong); }
+.menuItemDanger { display: flex; align-items: center; gap: 10px; width: 100%; height: 40px; padding: 0 12px; border: 0; border-radius: 10px; background: transparent; color: var(--danger); font-size: 14.5px; font-weight: 550; text-align: left; cursor: pointer; }
+.menuItemDanger:hover, .menuItemDanger:active { background: var(--danger-bg); }
 .textField { display: block; width: 100%; margin: 0; padding: 0; border: 0; background: transparent; resize: none; outline: none; font-size: 19px; line-height: 1.38; font-weight: 550; letter-spacing: -0.012em; }
 .textStatic { composes: textField; white-space: pre-wrap; word-break: break-word; }
 .banner { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0 0; padding: 12px 14px; border-radius: 14px; background: var(--danger-bg); color: var(--danger); font-size: 14px; line-height: 1.4; }
@@ -120,16 +132,26 @@
 .muted { color: var(--ink-3); }
 .pill { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px 0 4px; border: 0; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); font-size: 13.5px; cursor: default; }
 .pillText { padding-left: 7px; }
-.pillBtn { composes: pill; cursor: pointer; transition: background 0.15s, color 0.15s; }
-.pillOn { composes: pill; cursor: pointer; background: var(--ink); color: var(--paper); }
-.pillGhost { composes: pill; cursor: pointer; padding: 0 12px; background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--ink-2); }
+.picker { position: relative; min-width: 0; }
+.pickerToggle { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; width: calc(100% + 8px); min-height: 36px; margin: -2px -4px; padding: 2px 4px; border: 0; border-radius: 12px; background: transparent; font-size: 15px; text-align: left; cursor: pointer; transition: background 0.15s; }
+.pickerToggle:hover:not(:disabled), .pickerToggle[aria-expanded='true'] { background: var(--surface); }
+.pickerToggle:disabled { cursor: default; }
+.pickerToggle:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.pickerChevron { display: flex; color: var(--ink-3); }
+.dropdown { position: absolute; top: calc(100% + 6px); left: -4px; right: -4px; z-index: 20; max-height: 264px; overflow-y: auto; padding: 4px; border-radius: 14px; background: var(--lift); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 0 1px var(--edge-strong); }
+.dropdownItem { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 8px; border: 0; border-radius: 10px; background: transparent; font-size: 14.5px; text-align: left; cursor: pointer; }
+.dropdownItem:hover, .dropdownItem:active { background: var(--surface); }
+.dropdownItem:disabled { cursor: default; }
+.dropdownName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.check { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.checkOn { composes: check; background: var(--ink); color: var(--paper); box-shadow: none; }
 .dateInput { width: 9.4rem; height: 32px; padding: 0 10px; border: 0; border-radius: 10px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); font-size: 14.5px; font-variant-numeric: tabular-nums; }
 .dateInput:disabled { opacity: 1; background: transparent; box-shadow: none; padding-left: 0; }
 .starBtn { display: grid; place-items: center; width: 30px; height: 32px; padding: 0; border: 0; background: none; color: var(--line-strong); cursor: pointer; transition: transform 0.12s; }
 .starBtn:active:not(:disabled) { transform: scale(1.2); }
 .starBtn:disabled { cursor: default; }
 .starOn { composes: starBtn; color: var(--star); }
-.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 6px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 14px 0 6px; }
 .actionsRow { display: contents; }
 .btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); font-size: 14.5px; font-weight: 550; cursor: pointer; transition: background 0.15s, opacity 0.15s; }
 .btn:active { background: var(--surface-2); }
@@ -137,7 +159,9 @@
 .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .btnPrimary { composes: btn; flex: 1 1 100%; white-space: nowrap; background: var(--ink); color: var(--paper); }
 .btnPrimary:active { background: var(--ink); opacity: 0.85; }
-.btnDanger { composes: iconBtn; width: 42px; height: 42px; color: var(--danger); border-radius: 999px; }
+.chipBtn { composes: btn; flex: none; gap: 5px; height: 28px; padding: 0 10px; font-size: 12.5px; white-space: nowrap; }
+.chipBtnPrimary { composes: chipBtn; background: var(--ink); color: var(--paper); box-shadow: none; }
+.chipBtnPrimary:active { background: var(--ink); opacity: 0.85; }
 .blockForm { display: flex; gap: 8px; margin: 10px 0 4px; }
 .input { flex: 1; min-width: 0; height: 42px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); font-size: 16px; outline: none; }
 .input:focus-visible { box-shadow: inset 0 0 0 2px var(--ink); }

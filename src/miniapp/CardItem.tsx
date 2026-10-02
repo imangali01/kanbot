@@ -5,7 +5,7 @@ import { daysUntil, deadlineLabel } from '@/domain/dates';
 import { ticketId } from '@/domain/ticketId';
 import type { CardView } from '@/domain/types';
 import { Avatar } from './Avatar';
-import { IconBlock, IconStar } from './icons';
+import { IconLock, IconStar } from './icons';
 import s from './miniapp.module.css';
 
 export function CardBody({ card }: { card: CardView }) {
@@ -18,7 +18,7 @@ export function CardBody({ card }: { card: CardView }) {
       <p className={s.cardText}>{card.text}</p>
       {card.blocked && (
         <div className={s.reason}>
-          <IconBlock size={14} />
+          <IconLock size={14} />
           <span className={s.reasonText}>{card.blockedReason}</span>
         </div>
       )}
