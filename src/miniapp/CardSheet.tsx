@@ -120,7 +120,7 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
     <div className={s.composer}>
       <input className={s.input} placeholder="Написать комментарий" value={comment} onChange={(e) => setComment(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void sendComment()} />
       <button className={s.send} disabled={!comment.trim() || busy} onClick={() => void sendComment()} aria-label="Отправить комментарий">
-        <IconSend size={20} />
+        <IconSend size={17} />
       </button>
     </div>
   );
