@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { deadlineLabel } from '@/domain/dates';
+import { ticketId } from '@/domain/ticketId';
 import { STATUSES, STATUS_TITLES, type BoardView, type Status, type TaskDetail } from '@/domain/types';
 import { api, errorText } from './api';
 import { Avatar } from './Avatar';
@@ -115,7 +116,7 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
       ) : (
         <>
           <div className={s.headRow}>
-            <span className={s.num}>#{card.number}</span>
+            <span className={s.num}>{ticketId(card.number)}</span>
             <div className={s.seg} role="radiogroup" aria-label="Статус">
               {STATUSES.map((st) => (
                 <button key={st} role="radio" aria-checked={card.status === st} className={card.status === st ? s.segOn : s.segBtn} disabled={!card.canEdit || busy} onClick={() => card.status !== st && void changeStatus(st)}>

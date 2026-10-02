@@ -16,14 +16,14 @@ describe('messages', () => {
     expect(mentionHtml({ userId: 7, username: null, name: 'Иван <x>' })).toBe('<a href="tg://user?id=7">Иван &lt;x&gt;</a>');
   });
   it('task created text', () => {
-    expect(taskCreatedText(12, [{ userId: null, username: 'laderlapen', name: null }])).toBe('✅ Задача #12 создана\nИсполнители: @laderlapen');
-    expect(taskCreatedText(3, [])).toBe('✅ Задача #3 создана\nБез исполнителя');
+    expect(taskCreatedText(12, [{ userId: null, username: 'laderlapen', name: null }])).toBe('✅ Задача SD-0012 создана\nИсполнители: @laderlapen');
+    expect(taskCreatedText(3, [])).toBe('✅ Задача SD-0003 создана\nБез исполнителя');
   });
   it('comment is a quote block with the author in bold and escapes user input', () => {
-    expect(commentText('Аня', 4, 'a<b')).toBe('💬 <b>Аня</b> · #4\n<blockquote>a&lt;b</blockquote>');
+    expect(commentText('Аня', 4, 'a<b')).toBe('💬 <b>Аня</b> · SD-0004\n<blockquote>a&lt;b</blockquote>');
   });
   it('comment keeps line breaks inside the quote and escapes the author name', () => {
-    expect(commentText('<Я>', 7, 'раз\nдва')).toBe('💬 <b>&lt;Я&gt;</b> · #7\n<blockquote>раз\nдва</blockquote>');
+    expect(commentText('<Я>', 7, 'раз\nдва')).toBe('💬 <b>&lt;Я&gt;</b> · SD-0007\n<blockquote>раз\nдва</blockquote>');
   });
   it('digest lists today and overdue', () => {
     const base = { id: 1, chatTitle: 'test', status: 'todo' as const, assigneeIds: [1] };
@@ -31,7 +31,7 @@ describe('messages', () => {
       today: [{ ...base, number: 1, text: 'сегодня', deadline: '2026-10-02' }],
       overdue: [{ ...base, number: 2, text: 'старое', deadline: '2026-09-30' }],
     });
-    expect(out).toContain('<b>Сегодня:</b>\n• #1 сегодня — test');
-    expect(out).toContain('<b>Просрочено:</b>\n• #2 старое — test (до 30.09.2026)');
+    expect(out).toContain('<b>Сегодня:</b>\n• SD-0001 сегодня — test');
+    expect(out).toContain('<b>Просрочено:</b>\n• SD-0002 старое — test (до 30.09.2026)');
   });
 });

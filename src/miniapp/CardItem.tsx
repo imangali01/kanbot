@@ -2,6 +2,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { daysUntil, deadlineLabel } from '@/domain/dates';
+import { ticketId } from '@/domain/ticketId';
 import type { CardView } from '@/domain/types';
 import { Avatar } from './Avatar';
 import { IconBlock, IconStar } from './icons';
@@ -13,7 +14,7 @@ export function CardBody({ card }: { card: CardView }) {
   const dueClass = card.status === 'done' ? s.due : days < 0 ? s.dueOverdue : days === 0 ? s.dueToday : s.due;
   return (
     <>
-      <div className={s.cardNum}>#{card.number}</div>
+      <div className={s.cardNum}>{ticketId(card.number)}</div>
       <p className={s.cardText}>{card.text}</p>
       {card.blocked && (
         <div className={s.reason}>

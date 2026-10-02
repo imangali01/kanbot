@@ -1,4 +1,5 @@
 import { formatDateRu } from '@/domain/dates';
+import { ticketId } from '@/domain/ticketId';
 import type { Digest, DigestTask } from '@/domain/digest';
 
 export function escapeHtml(s: string): string {
@@ -25,11 +26,11 @@ export function mentionHtml(p: PersonRef): string {
 
 export function taskCreatedText(number: number, assignees: PersonRef[]): string {
   const who = assignees.length ? `Исполнители: ${assignees.map(mentionHtml).join(', ')}` : 'Без исполнителя';
-  return `✅ Задача #${number} создана\n${who}`;
+  return `✅ Задача ${ticketId(number)} создана\n${who}`;
 }
 
 export function taskAssignedDm(number: number, chatTitle: string, text: string, deadline: string): string {
-  return [`📝 Новая задача #${number} — ${escapeHtml(chatTitle)}`, escapeHtml(truncate(text, 300)), `Дедлайн: ${formatDateRu(deadline)}`].join('\n');
+  return [`📝 Новая задача ${ticketId(number)} — ${escapeHtml(chatTitle)}`, escapeHtml(truncate(text, 300)), `Дедлайн: ${formatDateRu(deadline)}`].join('\n');
 }
 
 export function statusChangedDm(
@@ -40,18 +41,18 @@ export function statusChangedDm(
   actorName: string,
   reason?: string,
 ): string {
-  const head = kind === 'done' ? `✅ Задача #${number} выполнена` : `⛔ Задача #${number} заблокирована`;
+  const head = kind === 'done' ? `✅ Задача ${ticketId(number)} выполнена` : `⛔ Задача ${ticketId(number)} заблокирована`;
   const lines = [`${head} — ${escapeHtml(chatTitle)}`, escapeHtml(truncate(text, 200)), `Кто: ${escapeHtml(actorName)}`];
   if (kind === 'blocked' && reason) lines.push(`Причина: ${escapeHtml(reason)}`);
   return lines.join('\n');
 }
 
 export function commentText(authorName: string, number: number, text: string): string {
-  return `💬 <b>${escapeHtml(authorName)}</b> · #${number}\n<blockquote>${escapeHtml(text)}</blockquote>`;
+  return `💬 <b>${escapeHtml(authorName)}</b> · ${ticketId(number)}\n<blockquote>${escapeHtml(text)}</blockquote>`;
 }
 
 export function pingText(number: number): string {
-  return `📌 Задача #${number}`;
+  return `📌 Задача ${ticketId(number)}`;
 }
 
 export function loginCodeText(code: string): string {
@@ -60,7 +61,7 @@ export function loginCodeText(code: string): string {
 
 export function formatDigest(d: Digest): string {
   const line = (t: DigestTask, withDate: boolean) =>
-    `• #${t.number} ${escapeHtml(truncate(t.text, 80))} — ${escapeHtml(t.chatTitle)}${withDate ? ` (до ${formatDateRu(t.deadline)})` : ''}`;
+    `• ${ticketId(t.number)} ${escapeHtml(truncate(t.text, 80))} — ${escapeHtml(t.chatTitle)}${withDate ? ` (до ${formatDateRu(t.deadline)})` : ''}`;
   const parts = ['☀️ <b>Дедлайны</b>'];
   if (d.today.length) parts.push('', '<b>Сегодня:</b>', ...d.today.map((t) => line(t, false)));
   if (d.overdue.length) parts.push('', '<b>Просрочено:</b>', ...d.overdue.map((t) => line(t, true)));
