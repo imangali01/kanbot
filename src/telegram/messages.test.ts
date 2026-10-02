@@ -19,8 +19,11 @@ describe('messages', () => {
     expect(taskCreatedText(12, [{ userId: null, username: 'laderlapen', name: null }])).toBe('✅ Задача #12 создана\nИсполнители: @laderlapen');
     expect(taskCreatedText(3, [])).toBe('✅ Задача #3 создана\nБез исполнителя');
   });
-  it('comment text escapes user input', () => {
-    expect(commentText('Аня', 4, 'a<b')).toBe('💬 Аня · #4:\na&lt;b');
+  it('comment is a quote block with the author in bold and escapes user input', () => {
+    expect(commentText('Аня', 4, 'a<b')).toBe('💬 <b>Аня</b> · #4\n<blockquote>a&lt;b</blockquote>');
+  });
+  it('comment keeps line breaks inside the quote and escapes the author name', () => {
+    expect(commentText('<Я>', 7, 'раз\nдва')).toBe('💬 <b>&lt;Я&gt;</b> · #7\n<blockquote>раз\nдва</blockquote>');
   });
   it('digest lists today and overdue', () => {
     const base = { id: 1, chatTitle: 'test', status: 'todo' as const, assigneeIds: [1] };

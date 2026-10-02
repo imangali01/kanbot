@@ -47,7 +47,7 @@ export function statusChangedDm(
 }
 
 export function commentText(authorName: string, number: number, text: string): string {
-  return `💬 ${escapeHtml(authorName)} · #${number}:\n${escapeHtml(text)}`;
+  return `💬 <b>${escapeHtml(authorName)}</b> · #${number}\n<blockquote>${escapeHtml(text)}</blockquote>`;
 }
 
 export function pingText(number: number): string {
