@@ -180,7 +180,7 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
             <div className={s.prop}>
               <span className={s.propIcon}><IconCalendar size={18} /></span>
               <span className={s.propLabel}>Срок</span>
-              <div className={s.propValue}>
+              <div className={s.propValueRow}>
                 <input type="date" required className={s.dateInput} value={card.deadline} disabled={!card.canEdit || busy} aria-label="Срок выполнения" onChange={(e) => e.target.value && void patch({ deadline: e.target.value })} />
                 <span className={s.muted}>{deadlineLabel(card.deadline, new Date())}</span>
               </div>
@@ -202,8 +202,10 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
               <span className={s.propIcon}><IconUser size={18} /></span>
               <span className={s.propLabel}>Поставил</span>
               <div className={s.propValue}>
-                <span>{card.authorName}</span>
-                <span className={s.muted}>{fmtDateTime(card.createdAt)}</span>
+                <div className={s.stack}>
+                  <span>{card.authorName}</span>
+                  <span className={s.muted}>{fmtDateTime(card.createdAt)}</span>
+                </div>
               </div>
             </div>
           </div>
