@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { commentText, displayName, escapeHtml, formatDigest, mentionHtml, taskCreatedText, truncate } from './messages';
+import { commentText, displayName, escapeHtml, formatDigest, helpText, mentionHtml, taskCreatedText, truncate } from './messages';
 
 describe('messages', () => {
   it('escapes html', () => expect(escapeHtml('<b>&"</b>')).toBe('&lt;b&gt;&amp;"&lt;/b&gt;'));
@@ -33,5 +33,25 @@ describe('messages', () => {
     });
     expect(out).toContain('<b>Сегодня:</b>\n• SD-0001 сегодня — test');
     expect(out).toContain('<b>Просрочено:</b>\n• SD-0002 старое — test (до 30.09.2026)');
+  });
+});
+
+describe('helpText', () => {
+  it('explains how to create a task and shows the ticket ID format', () => {
+    const t = helpText({ isAdmin: false, inGroup: true });
+    expect(t).toContain('/task @исполнитель текст задачи');
+    expect(t).toContain('SD-0001');
+    expect(t).toContain('/help');
+  });
+  it('mentions the admin panel only for admins', () => {
+    expect(helpText({ isAdmin: true, inGroup: true })).toContain('Админка');
+    expect(helpText({ isAdmin: false, inGroup: true })).not.toContain('Админка');
+  });
+  it('tells people in a private chat to add the bot to a group', () => {
+    expect(helpText({ isAdmin: false, inGroup: false })).toContain('добавьте бота в рабочую группу');
+    expect(helpText({ isAdmin: false, inGroup: true })).not.toContain('добавьте бота в рабочую группу');
+  });
+  it('fits into one Telegram message', () => {
+    expect(helpText({ isAdmin: true, inGroup: false }).length).toBeLessThan(4096);
   });
 });

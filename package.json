@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "webhook:set": "node --env-file=.env.local scripts/set-webhook.mjs"
+    "webhook:set": "node --env-file=.env.local scripts/set-webhook.mjs",
+    "bot:profile": "node --env-file=.env.local scripts/set-bot-profile.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

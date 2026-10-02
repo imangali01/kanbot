@@ -1,8 +1,9 @@
 import type { ChatMemberUpdated, Message, Update } from 'grammy/types';
+import { commandName } from '@/domain/commands';
 import { parseTaskCommand, type IncomingMessage } from '@/domain/parseTaskCommand';
 import { canCreate } from '@/domain/permissions';
 import { env } from '@/env';
-import { NO_RIGHTS_TEXT, START_TEXT, USAGE_TEXT } from '@/telegram/messages';
+import { NO_RIGHTS_TEXT, START_TEXT, USAGE_TEXT, helpText } from '@/telegram/messages';
 import { replyInGroup, sendDm } from '@/telegram/notifier';
 import { getActor, getChat, migrateChat, setChatStatus, touchMember, upsertPendingChat } from './chats';
 import { notifyTaskCreated } from './notifications';
@@ -22,8 +23,14 @@ async function onMyChatMember(u: ChatMemberUpdated): Promise<void> {
 }
 
 async function onPrivate(msg: Message): Promise<void> {
-  if (!msg.from || !msg.text?.startsWith('/start')) return;
+  if (!msg.from) return;
+  const command = commandName(msg.text, env.botUsername);
+  if (command !== 'start' && command !== 'help') return;
   await upsertUser(msg.from);
+  if (command === 'help') {
+    await sendDm(msg.from.id, helpText({ isAdmin: env.superadminIds.includes(msg.from.id), inGroup: false }));
+    return;
+  }
   await setStartedBot(msg.from.id, true);
   await sendDm(msg.from.id, START_TEXT);
 }
@@ -54,6 +61,11 @@ async function onGroupMessage(msg: Message): Promise<void> {
     await touchMember(chat.id, msg.left_chat_member.id, false);
   }
   if (!msg.from || msg.from.is_bot) return;
+
+  if (commandName(msg.text, env.botUsername) === 'help') {
+    await replyInGroup(chat.id, msg.message_id, helpText({ isAdmin: env.superadminIds.includes(msg.from.id), inGroup: true }));
+    return;
+  }
 
   const parsed = parseTaskCommand(msg as unknown as IncomingMessage, env.botUsername);
   if (!parsed.ok) {
