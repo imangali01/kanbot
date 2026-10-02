@@ -77,3 +77,21 @@ describe('parseTaskCommand', () => {
     expect(r.ok && r.text).toBe('первая строка\nвторая');
   });
 });
+
+describe('parseTaskCommand: users without username', () => {
+  const user = { id: 42, first_name: 'шляпа' };
+  it('stray @ before a text_mention is not left in the task text', () => {
+    const text = '/task @Иван сделай отчёт';
+    const r = parseTaskCommand({ message_id: 1, text, entities: [cmd(), { type: 'text_mention', offset: 7, length: 4, user: { id: 42, first_name: 'Иван' } }] }, BOT);
+    expect(r).toEqual({ ok: true, text: 'сделай отчёт', assignees: [{ kind: 'user', user: { id: 42, first_name: 'Иван' } }], sourceMessageId: 1 });
+  });
+  it('a bare mention of a user without username still creates a task named after them', () => {
+    const text = '/task @шляпа';
+    const r = parseTaskCommand({ message_id: 3, text, entities: [cmd(), { type: 'text_mention', offset: 7, length: 5, user }] }, BOT);
+    expect(r).toEqual({ ok: true, text: 'шляпа', assignees: [{ kind: 'user', user }], sourceMessageId: 3 });
+  });
+  it('a bare @username mention without text still asks for the text', () => {
+    const r = parseTaskCommand({ message_id: 1, text: '/task @a1', entities: [cmd(), { type: 'mention', offset: 6, length: 3 }] }, BOT);
+    expect(r).toEqual({ ok: false, reason: 'empty_text' });
+  });
+});
