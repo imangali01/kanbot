@@ -2,13 +2,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AdminChats, type AdminCall } from '@/admin/AdminChats';
 import { parseStartParam } from '@/domain/links';
+import { Analytics } from './Analytics';
 import { rawApi } from './api';
 import { Board } from './Board';
 import { ChatList } from './ChatList';
 import { applyTheme, webApp } from './telegram';
 import s from './miniapp.module.css';
 
-type View = { kind: 'chats' } | { kind: 'admin' } | { kind: 'board'; chatId: number; taskNumber: number | null };
+type View =
+  | { kind: 'chats' }
+  | { kind: 'admin' }
+  | { kind: 'board'; chatId: number; taskNumber: number | null }
+  | { kind: 'analytics'; chatId: number; title: string };
 
 const adminCall: AdminCall = (path, init) => rawApi(path, init);
 
@@ -44,8 +49,10 @@ export function MiniApp() {
         <ChatList onOpen={(chatId) => setView({ kind: 'board', chatId, taskNumber: null })} onAdmin={() => setView({ kind: 'admin' })} />
       ) : view.kind === 'admin' ? (
         <AdminChats call={adminCall} onBack={toChats} />
+      ) : view.kind === 'analytics' ? (
+        <Analytics chatId={view.chatId} title={view.title} onBack={() => setView({ kind: 'board', chatId: view.chatId, taskNumber: null })} />
       ) : (
-        <Board chatId={view.chatId} openTaskNumber={view.taskNumber} onBack={toChats} />
+        <Board chatId={view.chatId} openTaskNumber={view.taskNumber} onBack={toChats} onAnalytics={(title) => setView({ kind: 'analytics', chatId: view.chatId, title })} />
       )}
     </div>
   );

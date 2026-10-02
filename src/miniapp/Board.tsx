@@ -8,7 +8,7 @@ import { api, errorText } from './api';
 import { Avatar } from './Avatar';
 import { CardItem, CardOverlay } from './CardItem';
 import { CardSheet } from './CardSheet';
-import { IconRefresh, IconSliders } from './icons';
+import { IconChart, IconRefresh, IconSliders } from './icons';
 import { OptionsSheet } from './OptionsSheet';
 import { loadPrefs, savePrefs, type BoardPrefs } from './prefs';
 import { webApp } from './telegram';
@@ -47,7 +47,7 @@ function Column({ status, cards, onOpen }: { status: Status; cards: CardView[]; 
   );
 }
 
-export function Board({ chatId, openTaskNumber, onBack }: { chatId: number; openTaskNumber: number | null; onBack: () => void }) {
+export function Board({ chatId, openTaskNumber, onBack, onAnalytics }: { chatId: number; openTaskNumber: number | null; onBack: () => void; onAnalytics: (title: string) => void }) {
   const [board, setBoard] = useState<BoardView | null>(null);
   const [prefs, setPrefs] = useState<BoardPrefs>(() => loadPrefs(chatId));
   const [columns, setColumns] = useState<Columns | null>(null);
@@ -214,6 +214,9 @@ export function Board({ chatId, openTaskNumber, onBack }: { chatId: number; open
       <header className={s.top}>
         <div className={s.titleRow}>
           <h1 className={s.title}>{board.chat.title || 'Доска'}</h1>
+          <button className={s.iconBtn} onClick={() => onAnalytics(board.chat.title || 'Доска')} aria-label="Аналитика">
+            <IconChart />
+          </button>
           <button className={loading ? `${s.iconBtn} ${s.spin}` : s.iconBtn} onClick={() => void refresh()} disabled={loading} aria-label="Обновить доску">
             <IconRefresh />
           </button>

@@ -61,3 +61,6 @@ export const IconChevronDown = (p: P) => (
 export const IconReply = (p: P) => (
   <Icon {...p}><path d="M10 6.5L4.5 12 10 17.5" /><path d="M4.5 12h9a6 6 0 0 1 6 6v.5" /></Icon>
 );
+export const IconChart = (p: P) => (
+  <Icon {...p}><path d="M4.5 19.5h15" /><rect x="6" y="11" width="3" height="6" rx="1" /><rect x="10.5" y="6.5" width="3" height="10.5" rx="1" /><rect x="15" y="9" width="3" height="8" rx="1" /></Icon>
+);

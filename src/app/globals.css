@@ -21,6 +21,11 @@
   --av-l: 44%;
   --r-card: 14px;
   --r-sheet: 22px;
+  --s1: #d69a22;
+  --s2: #bd7e14;
+  --s3: #9c640c;
+  --s4: #764b09;
+  --s5: #4f3205;
   color-scheme: light;
 }
 
@@ -45,6 +50,11 @@
   --st-done: #4cc287;
   --av-s: 34%;
   --av-l: 52%;
+  --s1: #9a7020;
+  --s2: #bd8a26;
+  --s3: #dba536;
+  --s4: #f2c45c;
+  --s5: #ffe09a;
   color-scheme: dark;
 }
 
