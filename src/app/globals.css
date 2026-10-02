@@ -8,6 +8,8 @@
   --ink-3: #9a9ea6;
   --line: #e7e7e2;
   --line-strong: #d3d3cd;
+  --edge: rgba(23, 24, 28, 0.07);
+  --edge-strong: rgba(23, 24, 28, 0.14);
   --danger: #d6403f;
   --danger-bg: #fbeaea;
   --warn: #c77a0a;
@@ -23,20 +25,22 @@
 }
 
 :root[data-theme='dark'] {
-  --paper: #121316;
-  --surface: #1b1c20;
-  --surface-2: #26282d;
-  --lift: #2a2c32;
-  --ink: #f1f1ee;
-  --ink-2: #a4a8b0;
-  --ink-3: #6d717a;
-  --line: #26282d;
-  --line-strong: #383b42;
-  --danger: #ff6f6d;
-  --danger-bg: #2e1c1d;
+  --paper: #1f2126;
+  --surface: #2a2d34;
+  --surface-2: #343842;
+  --lift: #3b3f49;
+  --ink: #f3f3f0;
+  --ink-2: #b2b6be;
+  --ink-3: #8b909a;
+  --line: #3a3e47;
+  --line-strong: #4d525e;
+  --edge: rgba(255, 255, 255, 0.09);
+  --edge-strong: rgba(255, 255, 255, 0.17);
+  --danger: #ff7573;
+  --danger-bg: #3a2325;
   --warn: #f0a63a;
   --star: #f0b43a;
-  --st-todo: #6d717a;
+  --st-todo: #7f848e;
   --st-progress: #f0b43a;
   --st-done: #4cc287;
   --av-s: 34%;
@@ -63,24 +67,26 @@ button { -webkit-tap-highlight-color: transparent; }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --paper: #121316;
-    --surface: #1b1c20;
-    --surface-2: #26282d;
-    --lift: #2a2c32;
-    --ink: #f1f1ee;
-    --ink-2: #a4a8b0;
-    --ink-3: #6d717a;
-    --line: #26282d;
-    --line-strong: #383b42;
-    --danger: #ff6f6d;
-    --danger-bg: #2e1c1d;
-    --warn: #f0a63a;
-    --star: #f0b43a;
-    --st-todo: #6d717a;
-    --st-progress: #f0b43a;
-    --st-done: #4cc287;
-    --av-s: 34%;
-    --av-l: 52%;
+    --paper: #1f2126;
+  --surface: #2a2d34;
+  --surface-2: #343842;
+  --lift: #3b3f49;
+  --ink: #f3f3f0;
+  --ink-2: #b2b6be;
+  --ink-3: #8b909a;
+  --line: #3a3e47;
+  --line-strong: #4d525e;
+  --edge: rgba(255, 255, 255, 0.09);
+  --edge-strong: rgba(255, 255, 255, 0.17);
+  --danger: #ff7573;
+  --danger-bg: #3a2325;
+  --warn: #f0a63a;
+  --star: #f0b43a;
+  --st-todo: #7f848e;
+  --st-progress: #f0b43a;
+  --st-done: #4cc287;
+  --av-s: 34%;
+  --av-l: 52%;
     color-scheme: dark;
   }
 }

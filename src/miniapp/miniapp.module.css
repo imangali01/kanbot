@@ -27,7 +27,7 @@
 
 .filters { display: flex; gap: 6px; overflow-x: auto; margin: 12px -16px 0; padding: 0 16px 2px; scrollbar-width: none; }
 .filters::-webkit-scrollbar { display: none; }
-.filter { flex: none; display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px; border: 0; border-radius: 999px; background: var(--surface); color: var(--ink-2); font-size: 14px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.filter { flex: none; display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px; border: 0; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); color: var(--ink-2); font-size: 14px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background 0.15s, color 0.15s; }
 .filterAv { composes: filter; padding-left: 5px; }
 .filter:active { background: var(--surface-2); }
 .filter:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
@@ -65,13 +65,13 @@
 }
 
 /* ───── карточка в колонке ───── */
-.card { position: relative; padding: 13px 14px 12px; border-radius: var(--r-card); background: var(--surface); touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: pointer; transition: transform 0.12s, background 0.15s; }
+.card { position: relative; padding: 13px 14px 12px; border-radius: var(--r-card); background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: pointer; transition: transform 0.12s, background 0.15s; }
 .card:active { transform: scale(0.985); }
 .card:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .cardBlocked { composes: card; }
 .cardBlocked::before { content: ''; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: var(--danger); }
 .cardGhost { opacity: 0.28; }
-.cardOverlay { composes: card; background: var(--lift); box-shadow: 0 16px 36px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.12); transform: scale(1.03) rotate(1deg); cursor: grabbing; }
+.cardOverlay { composes: card; background: var(--lift); box-shadow: 0 0 0 1px var(--edge-strong), 0 16px 36px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.16); transform: scale(1.03) rotate(1deg); cursor: grabbing; }
 .cardNum { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .cardText { margin: 3px 0 0; font-size: 15px; line-height: 1.4; font-weight: 450; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
 .reason { display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; font-size: 12.5px; line-height: 1.35; color: var(--danger); }
@@ -90,7 +90,7 @@
 
 /* ───── шторки ───── */
 .backdrop { position: fixed; inset: 0; z-index: 30; background: rgba(8, 8, 10, 0.42); animation: fade 0.2s both; }
-.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 31; width: min(560px, 100%); max-height: 92dvh; margin: 0 auto; display: flex; flex-direction: column; background: var(--paper); border-radius: var(--r-sheet) var(--r-sheet) 0 0; box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.14); animation: rise 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 31; width: min(560px, 100%); max-height: 92dvh; margin: 0 auto; display: flex; flex-direction: column; background: var(--paper); border-radius: var(--r-sheet) var(--r-sheet) 0 0; box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.28), inset 0 1px 0 var(--edge-strong); animation: rise 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .handle { flex: none; width: 38px; height: 4px; margin: 9px auto 0; border-radius: 2px; background: var(--line-strong); }
 .sheetBody { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 10px 20px 20px; }
 .sheetFoot { flex: none; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--paper); }
@@ -99,11 +99,11 @@
 /* ───── карточка задачи ───── */
 .headRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .num { font-size: 14px; color: var(--ink-3); font-variant-numeric: tabular-nums; font-weight: 500; }
-.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 3px; border-radius: 13px; background: var(--surface); flex: 1; max-width: 300px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 3px; border-radius: 13px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); flex: 1; max-width: 300px; }
 .segBtn { display: flex; align-items: center; justify-content: center; gap: 6px; height: 32px; border: 0; border-radius: 10px; background: transparent; color: var(--ink-2); font-size: 13px; font-weight: 550; cursor: pointer; transition: background 0.15s, color 0.15s; }
 .segBtn:disabled { cursor: default; opacity: 0.6; }
 .segBtn:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
-.segOn { composes: segBtn; background: var(--paper); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+.segOn { composes: segBtn; background: var(--lift); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--edge-strong); }
 .textField { display: block; width: 100%; margin: 0; padding: 0; border: 0; background: transparent; resize: none; outline: none; font-size: 19px; line-height: 1.38; font-weight: 550; letter-spacing: -0.012em; }
 .textStatic { composes: textField; white-space: pre-wrap; word-break: break-word; }
 .banner { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0 0; padding: 12px 14px; border-radius: 14px; background: var(--danger-bg); color: var(--danger); font-size: 14px; line-height: 1.4; }
@@ -118,20 +118,20 @@
 .propValueRow { composes: propValue; flex-wrap: nowrap; }
 .stack { display: flex; flex-direction: column; gap: 1px; line-height: 1.3; }
 .muted { color: var(--ink-3); }
-.pill { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px 0 4px; border: 0; border-radius: 999px; background: var(--surface); font-size: 13.5px; cursor: default; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px 0 4px; border: 0; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); font-size: 13.5px; cursor: default; }
 .pillText { padding-left: 7px; }
 .pillBtn { composes: pill; cursor: pointer; transition: background 0.15s, color 0.15s; }
 .pillOn { composes: pill; cursor: pointer; background: var(--ink); color: var(--paper); }
 .pillGhost { composes: pill; cursor: pointer; padding: 0 12px; background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--ink-2); }
-.dateInput { width: 9.4rem; height: 32px; padding: 0 10px; border: 0; border-radius: 10px; background: var(--surface); font-size: 14.5px; font-variant-numeric: tabular-nums; }
-.dateInput:disabled { opacity: 1; background: transparent; padding-left: 0; }
+.dateInput { width: 9.4rem; height: 32px; padding: 0 10px; border: 0; border-radius: 10px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); font-size: 14.5px; font-variant-numeric: tabular-nums; }
+.dateInput:disabled { opacity: 1; background: transparent; box-shadow: none; padding-left: 0; }
 .starBtn { display: grid; place-items: center; width: 30px; height: 32px; padding: 0; border: 0; background: none; color: var(--line-strong); cursor: pointer; transition: transform 0.12s; }
 .starBtn:active:not(:disabled) { transform: scale(1.2); }
 .starBtn:disabled { cursor: default; }
 .starOn { composes: starBtn; color: var(--star); }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 6px; }
 .actionsRow { display: contents; }
-.btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--surface); font-size: 14.5px; font-weight: 550; cursor: pointer; transition: background 0.15s, opacity 0.15s; }
+.btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); font-size: 14.5px; font-weight: 550; cursor: pointer; transition: background 0.15s, opacity 0.15s; }
 .btn:active { background: var(--surface-2); }
 .btn:disabled { opacity: 0.5; cursor: default; }
 .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
@@ -139,7 +139,7 @@
 .btnPrimary:active { background: var(--ink); opacity: 0.85; }
 .btnDanger { composes: iconBtn; width: 42px; height: 42px; color: var(--danger); border-radius: 999px; }
 .blockForm { display: flex; gap: 8px; margin: 10px 0 4px; }
-.input { flex: 1; min-width: 0; height: 42px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--surface); font-size: 16px; outline: none; }
+.input { flex: 1; min-width: 0; height: 42px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); font-size: 16px; outline: none; }
 .input:focus-visible { box-shadow: inset 0 0 0 2px var(--ink); }
 .input::placeholder { color: var(--ink-3); }
 .sectionTitle { margin: 22px 0 12px; font-size: 15px; font-weight: 600; }

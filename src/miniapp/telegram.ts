@@ -27,7 +27,7 @@ export function confirmDialog(message: string): Promise<boolean> {
   return new Promise((resolve) => wa.showConfirm(message, resolve));
 }
 
-const PAPER = { light: '#ffffff', dark: '#121316' } as const;
+const PAPER = { light: '#ffffff', dark: '#1f2126' } as const;
 
 export function applyTheme(wa: WebApp | null): void {
   const scheme = wa?.colorScheme ?? (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
