@@ -1,30 +1,36 @@
 'use client';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { deadlineState, formatDateRu } from '@/domain/dates';
+import { daysUntil, deadlineLabel } from '@/domain/dates';
 import type { CardView } from '@/domain/types';
+import { Avatar } from './Avatar';
+import { IconBlock, IconStar } from './icons';
 import s from './miniapp.module.css';
 
-function initials(name: string): string {
-  return name.replace('@', '').split(' ').map((p) => p[0] ?? '').join('').slice(0, 2).toUpperCase();
-}
-
 export function CardBody({ card }: { card: CardView }) {
-  const state = deadlineState(card.deadline, new Date());
-  const deadlineClass = state === 'overdue' ? s.deadlineOverdue : state === 'today' ? s.deadlineToday : s.deadline;
+  const now = new Date();
+  const days = daysUntil(card.deadline, now);
+  const dueClass = card.status === 'done' ? s.due : days < 0 ? s.dueOverdue : days === 0 ? s.dueToday : s.due;
   return (
     <>
       <div className={s.cardNum}>#{card.number}</div>
-      <div className={s.cardText}>{card.text}</div>
+      <p className={s.cardText}>{card.text}</p>
+      {card.blocked && (
+        <div className={s.reason}>
+          <IconBlock size={14} />
+          <span className={s.reasonText}>{card.blockedReason}</span>
+        </div>
+      )}
       <div className={s.cardMeta}>
-        <span className={s.stars}>{'★'.repeat(card.stars)}</span>
-        <span className={deadlineClass}>{formatDateRu(card.deadline)}</span>
-        {card.blocked && <span className={s.blockedTag}>⛔</span>}
-        <span className={s.avatars}>
-          {card.assignees.slice(0, 3).map((a) => (
-            <span key={a.key} className={s.avatar} title={a.name}>{initials(a.name)}</span>
-          ))}
+        <span className={s.stars} aria-label={`Сложность ${card.stars} из 5`}>
+          {Array.from({ length: card.stars }, (_, i) => <IconStar key={i} size={13} filled />)}
         </span>
+        <span className={dueClass}>{deadlineLabel(card.deadline, now)}</span>
+        {card.assignees.length > 0 && (
+          <span className={s.avatars}>
+            {card.assignees.slice(0, 3).map((a) => <Avatar key={a.key} name={a.name} stacked />)}
+          </span>
+        )}
       </div>
     </>
   );

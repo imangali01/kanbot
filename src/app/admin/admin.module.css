@@ -1,15 +1,55 @@
-.page { max-width: 760px; margin: 0 auto; padding: 32px 16px; color: #111; background: #fff; min-height: 100vh; }
-.title { margin: 0 0 24px; font-size: 22px; }
-.form { display: flex; flex-direction: column; gap: 12px; max-width: 320px; }
-.input { padding: 10px 12px; border: 1px solid #d8dbe0; border-radius: 10px; font-size: 16px; }
-.btn { padding: 10px 14px; border: 0; border-radius: 10px; background: #f2f3f5; cursor: pointer; font-size: 14px; }
-.btnPrimary { composes: btn; background: #2f80ed; color: #fff; }
-.hint { color: #6b7280; font-size: 14px; }
-.error { color: #e5484d; font-size: 14px; }
-.chat { padding: 16px; margin-bottom: 12px; border: 1px solid #e5e7eb; border-radius: 12px; }
-.chatHead { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
-.badge { padding: 2px 8px; border-radius: 999px; font-size: 12px; background: #f2f3f5; }
-.badgeOn { composes: badge; background: #dcfce7; color: #166534; }
-.row { display: flex; gap: 16px; align-items: center; margin-top: 12px; flex-wrap: wrap; font-size: 14px; }
-.members { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; font-size: 14px; }
-.top { display: flex; justify-content: space-between; align-items: center; }
+.page { min-height: 100dvh; background: var(--paper); color: var(--ink); }
+.wrap { width: min(680px, 100%); margin: 0 auto; padding: 40px 20px 80px; }
+
+/* ───── вход ───── */
+.loginWrap { width: min(400px, 100%); margin: 0 auto; padding: 18dvh 24px 40px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 28px; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+.brandMark { width: 28px; height: 28px; border-radius: 9px; background: var(--ink); display: grid; place-items: center; color: var(--paper); }
+.loginTitle { margin: 0 0 6px; font-size: 30px; font-weight: 650; letter-spacing: -0.03em; line-height: 1.1; }
+.lead { margin: 0 0 24px; font-size: 15px; line-height: 1.5; color: var(--ink-2); }
+.form { display: flex; flex-direction: column; gap: 10px; }
+.input { height: 52px; padding: 0 18px; border: 0; border-radius: 16px; background: var(--surface); font-size: 17px; outline: none; transition: box-shadow 0.15s; }
+.input:focus-visible { box-shadow: inset 0 0 0 2px var(--ink); }
+.input::placeholder { color: var(--ink-3); }
+.input:disabled { color: var(--ink-2); }
+.codeInput { composes: input; height: 64px; text-align: center; font-size: 30px; font-weight: 600; letter-spacing: 0.6em; padding-left: calc(18px + 0.6em); font-variant-numeric: tabular-nums; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 46px; padding: 0 20px; border: 0; border-radius: 999px; background: var(--surface); font-size: 15px; font-weight: 550; cursor: pointer; transition: background 0.15s, opacity 0.15s; }
+.btn:hover { background: var(--surface-2); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btnPrimary { composes: btn; background: var(--ink); color: var(--paper); height: 52px; font-size: 16px; }
+.btnPrimary:hover { background: var(--ink); opacity: 0.88; }
+.btnSmall { composes: btn; height: 36px; padding: 0 16px; font-size: 14px; background: var(--surface-2); }
+.btnSmall:hover { background: var(--line-strong); }
+.btnSmallPrimary { composes: btn; height: 36px; padding: 0 16px; font-size: 14px; background: var(--ink); color: var(--paper); }
+.btnSmallPrimary:hover { background: var(--ink); opacity: 0.88; }
+.hint { margin: 4px 2px 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-3); }
+.error { margin: 4px 2px 0; font-size: 14px; color: var(--danger); }
+
+/* ───── список чатов ───── */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 28px; }
+.title { margin: 0; font-size: 30px; font-weight: 650; letter-spacing: -0.03em; }
+.chats { display: flex; flex-direction: column; gap: 10px; }
+.chat { padding: 16px; border-radius: 20px; background: var(--surface); }
+.chatHead { display: flex; align-items: center; gap: 14px; }
+.tile { flex: none; width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; font-size: 19px; font-weight: 650; color: #fff; background: hsl(var(--h) var(--av-s) var(--av-l)); }
+.chatInfo { flex: 1; min-width: 0; }
+.chatTitle { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status { display: flex; align-items: center; gap: 7px; margin-top: 3px; font-size: 13.5px; color: var(--ink-2); }
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot_pending { composes: dot; background: var(--st-progress); }
+.dot_enabled { composes: dot; background: var(--st-done); }
+.dot_disabled { composes: dot; background: var(--st-todo); }
+.who { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.whoLabel { margin-bottom: 10px; font-size: 14px; color: var(--ink-2); }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 3px; border-radius: 13px; background: var(--surface-2); max-width: 300px; }
+.segBtn { height: 34px; border: 0; border-radius: 10px; background: transparent; color: var(--ink-2); font-size: 14px; font-weight: 550; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.segBtn:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.segOn { composes: segBtn; background: var(--paper); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+.members { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.pill { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 5px; border: 0; border-radius: 999px; background: var(--surface-2); color: var(--ink); font-size: 14px; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.pill:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.pillOn { composes: pill; background: var(--ink); color: var(--paper); }
+.empty { padding: 56px 20px; text-align: center; color: var(--ink-2); font-size: 15px; line-height: 1.55; }
+.skel { height: 78px; border-radius: 20px; background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 50%, var(--surface) 75%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
