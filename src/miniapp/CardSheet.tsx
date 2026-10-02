@@ -168,11 +168,12 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
 
           {card.blocked && (
             <div className={s.banner}>
-              <IconLock size={18} />
-              <div className={s.bannerBody}>
-                <div>{card.blockedReason}</div>
-                {card.canEdit && <button className={s.linkBtn} disabled={busy} onClick={() => void run(`/api/app/tasks/${taskId}/block`, 'DELETE')}>Снять блок</button>}
-              </div>
+              {card.canEdit ? (
+                <button className={s.unlockBtn} disabled={busy} aria-label="Снять блок" title="Снять блок" onClick={() => void run(`/api/app/tasks/${taskId}/block`, 'DELETE')}><IconLock size={18} /></button>
+              ) : (
+                <IconLock size={18} />
+              )}
+              <div className={s.bannerBody}>{card.blockedReason}</div>
             </div>
           )}
 
@@ -183,9 +184,12 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
               <div className={s.picker} ref={pickerRef}>
                 <button className={s.pickerToggle} disabled={!card.canEdit || busy} aria-haspopup="listbox" aria-expanded={pickAssignees} onClick={() => setPickAssignees(!pickAssignees)}>
                   {card.assignees.length === 0 && <span className={s.muted}>{card.canEdit ? 'Назначить' : 'Не назначены'}</span>}
-                  {card.assignees.map((a) => (
-                    <span key={a.key} className={s.pill}><Avatar name={a.name} size={22} /><span className={s.pillText}>{a.name.split(' ')[0]}</span></span>
-                  ))}
+                  {card.assignees.length > 0 && (
+                    <span className={s.faces}>
+                      {card.assignees.slice(0, 5).map((a) => <Avatar key={a.key} name={a.name} size={28} />)}
+                      {card.assignees.length > 5 && <span className={s.facesMore}>+{card.assignees.length - 5}</span>}
+                    </span>
+                  )}
                   {card.canEdit && <span className={s.pickerChevron}><IconChevronDown size={16} /></span>}
                 </button>
                 {pickAssignees && (
