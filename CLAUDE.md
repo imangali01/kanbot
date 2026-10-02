@@ -1,6 +1,6 @@
 # kanbot
 
-Telegram-бот (`@t8981_bot`) + Mini App канбан (Todo / In progress / Done) + веб-админка.
+Telegram-бот + Mini App канбан (Todo / In progress / Done) + веб-админка.
 Дизайн: `docs/superpowers/specs/2026-10-02-kanbot-design.md`. План: `docs/superpowers/plans/`.
 
 ## Стек
