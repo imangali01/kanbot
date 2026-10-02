@@ -1,12 +1,13 @@
-import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, ne, sql } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { chats, comments, taskAssignees, tasks, users } from '@/db/schema';
+import { analyticsSince, buildAnalytics, type ClosedTask } from '@/domain/analytics';
 import { tomorrow } from '@/domain/dates';
 import { supergroupMessageLink } from '@/domain/links';
 import { placeCard, topPosition } from '@/domain/ordering';
 import type { AssigneeRef } from '@/domain/parseTaskCommand';
 import { canComment, canDelete, canEdit, canEditText, canView, type Actor, type TaskAccessRef } from '@/domain/permissions';
-import type { AssigneeView, BoardView, CardView, CommentView, Status, TaskDetail } from '@/domain/types';
+import type { AnalyticsDays, AnalyticsView, AssigneeView, BoardView, CardView, CommentView, Status, TaskDetail } from '@/domain/types';
 import { commentText, displayName, pingText } from '@/telegram/messages';
 import { deleteMessage, replyInGroup } from '@/telegram/notifier';
 import { getActor, getChat, listMembers, type ChatRow } from './chats';
@@ -21,12 +22,16 @@ interface CardItem { row: TaskRow; assignees: AssigneeView[]; authorName: string
 
 const unknownUser = { firstName: '?', lastName: null, username: null };
 
-async function fetchCards(chatId: number, taskIds?: number[]): Promise<CardItem[]> {
+async function fetchCards(chatId: number, taskIds?: number[], doneSince?: Date): Promise<CardItem[]> {
   const db = getDb();
   const rows = await db
     .select()
     .from(tasks)
-    .where(taskIds ? and(eq(tasks.chatId, chatId), inArray(tasks.id, taskIds)) : eq(tasks.chatId, chatId));
+    .where(and(
+      eq(tasks.chatId, chatId),
+      taskIds ? inArray(tasks.id, taskIds) : undefined,
+      doneSince ? and(eq(tasks.status, 'done'), gte(tasks.doneAt, doneSince)) : undefined,
+    ));
   if (rows.length === 0) return [];
 
   const assigneeRows = await db
@@ -310,4 +315,16 @@ export async function showInChat(taskId: number, userId: number): Promise<{ mode
   const sent = await replyInGroup(ctx.chat.id, ctx.task.sourceMessageId, pingText(ctx.task.number));
   await getDb().update(chats).set({ lastPinMessageId: sent?.message_id ?? null }).where(eq(chats.id, ctx.chat.id));
   return { mode: 'pinged' };
+}
+
+export async function loadAnalytics(chat: ChatRow, days: AnalyticsDays, now: Date): Promise<AnalyticsView> {
+  const items = await fetchCards(chat.id, undefined, analyticsSince(days, now));
+  const closed: ClosedTask[] = items.map(({ row, assignees }) => ({
+    stars: row.stars,
+    createdAt: row.createdAt.toISOString(),
+    doneAt: row.doneAt!.toISOString(),
+    deadline: row.deadline,
+    assignees,
+  }));
+  return buildAnalytics(closed, days, now);
 }
