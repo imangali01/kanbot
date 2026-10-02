@@ -31,7 +31,7 @@ export function formatDateRu(date: string): string {
 
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
-function dayNumber(date: string): number {
+export function dayNumber(date: string): number {
   const [y, m, d] = date.split('-').map(Number);
   return Date.UTC(y, m - 1, d) / 86_400_000;
 }

@@ -36,3 +36,18 @@ export interface BoardView {
 export interface CommentView { id: number; kind: 'comment' | 'system'; text: string; authorName: string | null; createdAt: string }
 export interface TaskDetail { card: CardView; comments: CommentView[] }
 export interface ChatSummary { id: number; title: string }
+
+export type AnalyticsDays = 7 | 30 | 90;
+export interface Kpi { value: number | null; prev: number | null }
+export interface AnalyticsBucket { start: string; end: string; byStars: number[] }
+export interface AnalyticsStarRow { stars: number; closed: number; medianDays: number | null }
+export interface AnalyticsPerson { key: string; name: string; byStars: number[]; closed: number; stars: number }
+export interface AnalyticsView {
+  days: AnalyticsDays;
+  from: string;
+  to: string;
+  kpi: { closed: Kpi; stars: Kpi; onTime: Kpi };
+  buckets: AnalyticsBucket[];
+  byStars: AnalyticsStarRow[];
+  people: AnalyticsPerson[];
+}
