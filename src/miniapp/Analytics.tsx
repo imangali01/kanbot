@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { AnalyticsDays, AnalyticsView, Kpi } from '@/domain/types';
 import { api, errorText } from './api';
 import { Avatar } from './Avatar';
@@ -10,6 +10,7 @@ const PERIODS: AnalyticsDays[] = [7, 30, 90];
 const STAR_COLORS = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s4)', 'var(--s5)'];
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 const short = (d: string) => `${Number(d.slice(8))} ${MONTHS[Number(d.slice(5, 7)) - 1]}`;
+const ddmm = (d: string) => `${d.slice(8)}.${d.slice(5, 7)}`;
 const range = (a: string, b: string) => (a === b ? short(a) : `${short(a)} – ${short(b)}`);
 const plural = (n: number, one: string, few: string, many: string) => {
   const m10 = n % 10, m100 = n % 100;
@@ -39,16 +40,19 @@ export function Analytics({ chatId, title, onBack }: { chatId: number; title: st
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
 
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      setData(await api<AnalyticsView>(`/api/app/chats/${chatId}/analytics?days=${days}`));
-    } catch (e) {
-      setError(errorText(e));
-    }
-  }, [chatId, days]);
+  const [attempt, setAttempt] = useState(0);
 
-  useEffect(() => { setPicked(null); void load(); }, [load]);
+  useEffect(() => {
+    // ответ на прошлый период может прийти позже текущего — такой ответ отбрасываем
+    let current = true;
+    setPicked(null);
+    setError(null);
+    setData(null);
+    api<AnalyticsView>(`/api/app/chats/${chatId}/analytics?days=${days}`)
+      .then((d) => current && setData(d))
+      .catch((e) => current && setError(errorText(e)));
+    return () => { current = false; };
+  }, [chatId, days, attempt]);
   useEffect(() => {
     const back = webApp()?.BackButton;
     if (!back) return;
@@ -77,11 +81,11 @@ export function Analytics({ chatId, title, onBack }: { chatId: number; title: st
       </header>
 
       {error && (
-        <div className={s.center}>{error}<br /><button className={s.chipBtn} onClick={() => void load()}>Повторить</button></div>
+        <div className={s.center}>{error}<br /><button className={s.chipBtn} onClick={() => setAttempt((n) => n + 1)}>Повторить</button></div>
       )}
       {!error && !data && <div className={s.skeletons} aria-busy="true">{[0, 1, 2].map((i) => <div key={i} className={s.skel} />)}</div>}
 
-      {data && (
+      {data && !error && (
         <>
           <div className={s.kpis}>
             <div className={s.kpi}><span className={s.kpiLabel}>Закрыто</span><span className={s.kpiValue}>{data.kpi.closed.value}</span><Delta kpi={data.kpi.closed} /></div>
@@ -107,7 +111,11 @@ export function Analytics({ chatId, title, onBack }: { chatId: number; title: st
                     );
                   })}
                 </div>
-                <div className={s.axis}><span>{short(data.from)}</span><span>{short(data.to)}</span></div>
+                <div className={s.axis}>
+                  {data.buckets.map((b, i) => (
+                    <span key={b.start}>{i % (data.buckets.length > 8 ? 2 : 1) === 0 ? ddmm(b.start) : ''}</span>
+                  ))}
+                </div>
                 {bucket ? (
                   <div className={s.pickedInfo}>
                     <b>{range(bucket.start, bucket.end)}</b>

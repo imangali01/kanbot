@@ -222,7 +222,7 @@
 .analytics { padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); }
 .anHead { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
 .anTitles { display: flex; flex-direction: column; gap: 2px; }
-.analytics .seg { max-width: none; }
+.analytics .seg { max-width: none; grid-template-columns: repeat(3, 1fr); }
 .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
 .kpi { display: flex; flex-direction: column; gap: 2px; padding: 12px; border-radius: 14px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); min-width: 0; }
 .kpiLabel { font-size: 12.5px; color: var(--ink-2); }
@@ -240,7 +240,8 @@
 .colTrack { display: flex; width: 100%; min-height: 0; }
 .stackV { display: flex; flex-direction: column-reverse; width: 100%; height: 100%; border-radius: 5px; overflow: hidden; gap: 2px; }
 .stackH { display: flex; width: 100%; height: 100%; border-radius: 4px; overflow: hidden; gap: 2px; }
-.axis { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11.5px; color: var(--ink-3); }
+.axis { display: flex; gap: 4px; margin-top: 6px; font-size: 10.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.axis > span { flex: 1; min-width: 0; text-align: center; white-space: nowrap; overflow: visible; }
 .legend, .pickedInfo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 10px; font-size: 12.5px; color: var(--ink-2); }
 .legendItem { display: inline-flex; align-items: center; gap: 5px; }
 .legendItem i { width: 10px; height: 10px; border-radius: 3px; }
