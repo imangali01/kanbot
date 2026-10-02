@@ -1,0 +1,15 @@
+.page { max-width: 760px; margin: 0 auto; padding: 32px 16px; color: #111; background: #fff; min-height: 100vh; }
+.title { margin: 0 0 24px; font-size: 22px; }
+.form { display: flex; flex-direction: column; gap: 12px; max-width: 320px; }
+.input { padding: 10px 12px; border: 1px solid #d8dbe0; border-radius: 10px; font-size: 16px; }
+.btn { padding: 10px 14px; border: 0; border-radius: 10px; background: #f2f3f5; cursor: pointer; font-size: 14px; }
+.btnPrimary { composes: btn; background: #2f80ed; color: #fff; }
+.hint { color: #6b7280; font-size: 14px; }
+.error { color: #e5484d; font-size: 14px; }
+.chat { padding: 16px; margin-bottom: 12px; border: 1px solid #e5e7eb; border-radius: 12px; }
+.chatHead { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
+.badge { padding: 2px 8px; border-radius: 999px; font-size: 12px; background: #f2f3f5; }
+.badgeOn { composes: badge; background: #dcfce7; color: #166534; }
+.row { display: flex; gap: 16px; align-items: center; margin-top: 12px; flex-wrap: wrap; font-size: 14px; }
+.members { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; font-size: 14px; }
+.top { display: flex; justify-content: space-between; align-items: center; }
