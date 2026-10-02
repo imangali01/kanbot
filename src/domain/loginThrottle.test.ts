@@ -37,3 +37,12 @@ describe('loginThrottle', () => {
     expect(canIssue(null, T0)).toBe(true);
   });
 });
+
+describe('canIssue with an active code', () => {
+  it('does not issue a new code while a valid one exists (prevents resetting the attempt counter)', () => {
+    expect(canIssue(issue('h1', T0), T0 + 1000)).toBe(false);
+  });
+  it('issues again once the previous code expired', () => {
+    expect(canIssue(issue('h1', T0), T0 + CODE_TTL_MS + 1)).toBe(true);
+  });
+});

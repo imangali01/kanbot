@@ -10,7 +10,9 @@ function isLocked(state: CodeState | null, now: number): boolean {
 }
 
 export function canIssue(state: CodeState | null, now: number): boolean {
-  return !isLocked(state, now);
+  if (isLocked(state, now)) return false;
+  const hasActiveCode = !!state && !!state.codeHash && now <= state.expiresAt;
+  return !hasActiveCode;
 }
 
 export function issue(codeHash: string, now: number): CodeState {
