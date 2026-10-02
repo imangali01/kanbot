@@ -4,3 +4,5 @@ node_modules
 .next
 .vercel
 .claude/settings.local.json
+*.tsbuildinfo
+.superpowers
