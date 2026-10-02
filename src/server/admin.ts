@@ -6,6 +6,7 @@ import { adminLoginCodes, adminSessions } from '@/db/schema';
 import { canIssue, issue, verify, type CodeState, type VerifyResult } from '@/domain/loginThrottle';
 import { env } from '@/env';
 import { loginCodeText } from '@/telegram/messages';
+import { adminFromAuthHeader } from '@/telegram/adminAuth';
 import { sendDm } from '@/telegram/notifier';
 import { AccessError } from './errors';
 import { findUserByUsername } from './users';
@@ -76,7 +77,10 @@ export async function setSessionCookie(token: string): Promise<void> {
   (await cookies()).set(ADMIN_COOKIE, token, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: SESSION_MS / 1000 });
 }
 
-export async function requireAdmin(): Promise<number> {
+export async function requireAdmin(req: Request): Promise<number> {
+  const tma = adminFromAuthHeader(req.headers.get('authorization') ?? '', env.botToken, Math.floor(Date.now() / 1000), env.superadminIds);
+  if (tma.kind === 'admin') return tma.userId;
+  if (tma.kind === 'denied') throw new AccessError(403, 'Раздел только для админов');
   const token = (await cookies()).get(ADMIN_COOKIE)?.value;
   if (!token) throw new AccessError(401, 'Требуется вход');
   const [session] = await getDb().select().from(adminSessions).where(eq(adminSessions.tokenHash, hmac(token)));

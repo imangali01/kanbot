@@ -52,3 +52,6 @@ export const IconChat = (p: P) => (
 export const IconArchive = (p: P) => (
   <Icon {...p}><rect x="3.5" y="5" width="17" height="4.5" rx="1.5" /><path d="M5.5 9.5V18a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5V9.5M10 13.5h4" /></Icon>
 );
+export const IconShield = (p: P) => (
+  <Icon {...p}><path d="M12 3.5l7 2.6v5.4c0 4.2-2.8 7.4-7 9-4.2-1.6-7-4.8-7-9V6.1z" /><path d="M9 12l2.2 2.2L15.2 10" /></Icon>
+);

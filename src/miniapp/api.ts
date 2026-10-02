@@ -20,3 +20,12 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
 export function errorText(e: unknown): string {
   return e instanceof Error ? e.message : 'Ошибка';
 }
+
+export async function rawApi<T>(path: string, init?: { method?: string; body?: unknown }): Promise<{ status: number; data: T }> {
+  const res = await fetch(path, {
+    method: init?.method ?? 'GET',
+    headers: { Authorization: `tma ${webApp()?.initData ?? ''}`, 'Content-Type': 'application/json' },
+    body: init?.body === undefined ? undefined : JSON.stringify(init.body),
+  });
+  return { status: res.status, data: (await res.json().catch(() => ({}))) as T };
+}

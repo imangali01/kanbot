@@ -15,7 +15,7 @@ const schema = z.object({
 
 export function PATCH(req: Request, { params }: Params<'chatId'>) {
   return handle(async () => {
-    await requireAdmin();
+    await requireAdmin(req);
     const chatId = toId((await params).chatId);
     if (!(await getChat(chatId))) throw new AccessError(404, 'Чат не найден');
     const body = schema.parse(await req.json());

@@ -3,20 +3,31 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import type { ChatSummary } from '@/domain/types';
 import { api, errorText } from './api';
 import { avatarHue } from './avatarUtils';
-import { IconChevron } from './icons';
+import { IconChevron, IconShield } from './icons';
 import s from './miniapp.module.css';
 
-export function ChatList({ onOpen }: { onOpen: (chatId: number) => void }) {
+export function ChatList({ onOpen, onAdmin }: { onOpen: (chatId: number) => void; onAdmin: () => void }) {
   const [chats, setChats] = useState<ChatSummary[] | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api<{ chats: ChatSummary[] }>('/api/app/chats').then((d) => setChats(d.chats)).catch((e) => setError(errorText(e)));
+    api<{ chats: ChatSummary[]; isAdmin: boolean }>('/api/app/chats')
+      .then((d) => { setChats(d.chats); setIsAdmin(d.isAdmin); })
+      .catch((e) => setError(errorText(e)));
   }, []);
 
   return (
     <>
-      <h1 className={s.pageTitle}>Доски</h1>
+      <div className={s.pageHead}>
+        <h1 className={s.pageTitle}>Доски</h1>
+        {isAdmin && (
+          <button className={s.adminLink} onClick={onAdmin}>
+            <IconShield size={18} />
+            Админка
+          </button>
+        )}
+      </div>
       {error ? (
         <div className={s.center}>{error}</div>
       ) : !chats ? (

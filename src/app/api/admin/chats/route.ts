@@ -5,9 +5,9 @@ import { displayName } from '@/telegram/messages';
 
 export const dynamic = 'force-dynamic';
 
-export function GET() {
+export function GET(req: Request) {
   return handle(async () => {
-    await requireAdmin();
+    await requireAdmin(req);
     const chats = await listAllChats();
     return {
       chats: await Promise.all(
