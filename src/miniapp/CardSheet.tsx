@@ -267,7 +267,7 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
 
           <h3 className={s.sectionTitle}>Комментарии</h3>
           <div className={s.comments}>
-            {detail.comments.length === 0 && <div className={s.noComments}>Пока без комментариев. Ваш комментарий увидят и в группе.</div>}
+            {detail.comments.length === 0 && <div className={s.noComments}>Пока без комментариев</div>}
             {detail.comments.map((c) =>
               c.kind === 'system' ? (
                 <div key={c.id} className={s.system}>{c.text} · {fmtDateTime(c.createdAt)}</div>
