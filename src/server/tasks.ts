@@ -12,7 +12,7 @@ import { commentText, displayName, pingText } from '@/telegram/messages';
 import { deleteMessage, replyInGroup } from '@/telegram/notifier';
 import { getActor, getChat, listMembers, type ChatRow } from './chats';
 import { AccessError } from './errors';
-import { notifyAuthorStatus } from './notifications';
+import { notifyAuthorStatus, taskUrl } from './notifications';
 import { findUserByUsername, upsertUser } from './users';
 
 export type TaskRow = typeof tasks.$inferSelect;
@@ -316,7 +316,7 @@ export async function addComment(taskId: number, userId: number, text: string): 
   await getDb().insert(comments).values({ taskId, authorId: userId, kind: 'comment', text });
   const [me] = await getDb().select().from(users).where(eq(users.id, userId));
   const members = (await listMembers(ctx.chat.id)).map((m) => ({ userId: m.id, username: m.username, name: displayName(m) }));
-  await replyInGroup(ctx.chat.id, ctx.task.sourceMessageId, commentText(me ? displayName(me) : '?', ctx.task.number, text, members));
+  await replyInGroup(ctx.chat.id, ctx.task.sourceMessageId, commentText(me ? displayName(me) : '?', ctx.task.number, text, members, taskUrl(ctx.chat.id, ctx.task.number)));
   return getTaskDetail(taskId, userId);
 }
 

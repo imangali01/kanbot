@@ -56,11 +56,11 @@ export function statusChangedDm(
   return lines.join('\n');
 }
 
-export function commentText(authorName: string, number: number, text: string, members: MentionMember[] = []): string {
+export function commentText(authorName: string, number: number, text: string, members: MentionMember[] = [], url?: string): string {
   const body = splitMentions(text, members)
     .map((seg) => (seg.type === 'text' ? escapeHtml(seg.text) : mentionHtml(seg.member)))
     .join('');
-  return `💬 <b>${escapeHtml(authorName)}</b> · ${ticketId(number)}\n<blockquote>${body}</blockquote>`;
+  return `<b>${escapeHtml(authorName)}</b> · ${ticketRef(number, url)}\n${body}`;
 }
 
 export function pingText(number: number): string {
