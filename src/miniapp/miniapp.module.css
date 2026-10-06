@@ -201,6 +201,11 @@
 .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--paper); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: transform 0.2s cubic-bezier(0.3, 0.7, 0.2, 1); }
 .switchOn { composes: switch; background: var(--ink); }
 .switchOn::after { transform: translateX(18px); }
+.nameRow { display: flex; gap: 8px; margin: 6px 0; }
+.nameInput { flex: 1; min-width: 0; height: 44px; padding: 0 14px; border: 0; border-radius: 12px; background: var(--surface-2, var(--line)); color: inherit; font-size: 16px; outline: none; }
+.nameInput:focus-visible { box-shadow: inset 0 0 0 2px var(--ink); }
+.nameSave { flex: none; height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: var(--ink); color: var(--paper); font-size: 15px; font-weight: 550; cursor: pointer; }
+.nameSave:disabled { opacity: 0.45; cursor: default; }
 .optHint { margin: 2px 0 0; padding: 0 2px; font-size: 13px; color: var(--ink-3); line-height: 1.4; }
 
 /* ───── загрузка и уведомления ───── */

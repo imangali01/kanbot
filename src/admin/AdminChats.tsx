@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import s from '@/app/admin/admin.module.css';
 import { Avatar } from '@/miniapp/Avatar';
+import { DISPLAY_NAME_MAX } from '@/domain/displayName';
 import { avatarHue } from '@/miniapp/avatarUtils';
 import { webApp } from '@/miniapp/telegram';
 
@@ -12,7 +13,33 @@ export interface AdminChat {
   status: 'pending' | 'enabled' | 'disabled';
   creatorsMode: 'all' | 'list';
   creatorIds: number[];
-  members: { userId: number; name: string }[];
+  members: { userId: number; name: string; custom: boolean }[];
+}
+
+function MemberName({ member, onSave }: { member: AdminChat['members'][number]; onSave: (userId: number, displayName: string) => Promise<void> }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(member.name);
+  const submit = async (next: string) => {
+    await onSave(member.userId, next);
+    setEditing(false);
+  };
+  if (!editing) {
+    return (
+      <div className={s.memberRow}>
+        <Avatar name={member.name} size={24} />
+        <span className={s.memberName}>{member.name}{member.custom && <span className={s.memberTag}>своё имя</span>}</span>
+        <button className={s.btnSmall} onClick={() => { setValue(member.name); setEditing(true); }}>Изменить</button>
+      </div>
+    );
+  }
+  return (
+    <div className={s.memberRow}>
+      <input className={s.memberInput} value={value} maxLength={DISPLAY_NAME_MAX} autoFocus aria-label="Имя участника" onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void submit(value); if (e.key === 'Escape') setEditing(false); }} />
+      <button className={s.btnSmallPrimary} onClick={() => void submit(value)}>Сохранить</button>
+      {member.custom && <button className={s.btnSmall} title="Вернуть имя из Telegram" onClick={() => void submit('')}>Сбросить</button>}
+      <button className={s.btnSmall} onClick={() => setEditing(false)}>Отмена</button>
+    </div>
+  );
 }
 
 export type AdminCall = (path: string, init?: { method?: string; body?: unknown }) => Promise<{ status: number; data: { chats?: AdminChat[]; error?: string } }>;
@@ -50,6 +77,12 @@ export function AdminChats({ call, onUnauthorized, onLogout, onBack }: { call: A
   async function patch(id: number, body: Partial<Pick<AdminChat, 'status' | 'creatorsMode' | 'creatorIds'>>) {
     const { status, data } = await call(`/api/admin/chats/${id}`, { method: 'PATCH', body });
     if (status >= 400) setError(data.error ?? 'Не удалось сохранить');
+    await load();
+  }
+
+  async function rename(userId: number, displayName: string) {
+    const { status, data } = await call(`/api/admin/users/${userId}`, { method: 'PATCH', body: { displayName } });
+    if (status >= 400) setError(data.error ?? 'Не удалось сохранить имя');
     await load();
   }
 
@@ -103,6 +136,13 @@ export function AdminChats({ call, onUnauthorized, onLogout, onBack }: { call: A
                       </div>
                     )}
                   </div>
+
+                  {c.members.length > 0 && (
+                    <div className={s.who}>
+                      <div className={s.whoLabel}>Участники и их имена</div>
+                      {c.members.map((m) => <MemberName key={`${m.userId}:${m.name}`} member={m} onSave={rename} />)}
+                    </div>
+                  )}
                 </section>
               );
             })}

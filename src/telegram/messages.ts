@@ -11,7 +11,8 @@ export function truncate(s: string, max: number): string {
   return s.length <= max ? s : `${s.slice(0, max - 1)}…`;
 }
 
-export function displayName(u: { firstName: string; lastName: string | null; username: string | null }): string {
+export function displayName(u: { firstName: string; lastName: string | null; username: string | null; displayName?: string | null }): string {
+  if (u.displayName) return u.displayName;
   const full = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
   if (full) return full;
   return u.username ? `@${u.username}` : 'Без имени';

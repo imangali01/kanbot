@@ -18,7 +18,7 @@ export function GET(req: Request) {
           status: c.status,
           creatorsMode: c.creatorsMode,
           creatorIds: await getCreatorIds(c.id),
-          members: (await listMembers(c.id)).map((m) => ({ userId: m.id, name: displayName(m) })),
+          members: (await listMembers(c.id)).map((m) => ({ userId: m.id, name: displayName(m), custom: !!m.displayName })),
         })),
       ),
     };

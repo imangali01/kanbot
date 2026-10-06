@@ -250,7 +250,23 @@ export function Board({ chatId, openTaskNumber, onBack, onAnalytics }: { chatId:
       </DndContext>
 
       {openId !== null && <CardSheet taskId={openId} board={board} onClose={() => setOpenId(null)} onChanged={() => void refresh()} />}
-      {showOptions && <OptionsSheet prefs={prefs} onChange={setPrefs} onClose={() => setShowOptions(false)} />}
+      {showOptions && (
+        <OptionsSheet
+          prefs={prefs}
+          onChange={setPrefs}
+          onClose={() => setShowOptions(false)}
+          myName={board.members.find((m) => m.userId === board.me.userId)?.name ?? ''}
+          onRename={async (displayName) => {
+            try {
+              await api('/api/app/me', { method: 'PATCH', body: { displayName } });
+              await refresh();
+              setToast('Имя сохранено');
+            } catch (e) {
+              setToast(errorText(e));
+            }
+          }}
+        />
+      )}
       {toast && <div className={s.toast} role="status">{toast}</div>}
     </>
   );

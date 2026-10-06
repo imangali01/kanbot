@@ -20,6 +20,7 @@ export const users = pgTable('users', {
   username: text('username'),
   firstName: text('first_name').notNull().default(''),
   lastName: text('last_name'),
+  displayName: text('display_name'),
   startedBot: boolean('started_bot').notNull().default(false),
   updatedAt: ts('updated_at').notNull().defaultNow(),
 }, (t) => [index('users_username_idx').on(t.username)]);

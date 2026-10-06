@@ -32,6 +32,10 @@ export async function setStartedBot(userId: number, started: boolean): Promise<v
   await getDb().update(users).set({ startedBot: started }).where(eq(users.id, userId));
 }
 
+export async function setDisplayName(userId: number, displayName: string | null): Promise<void> {
+  await getDb().update(users).set({ displayName }).where(eq(users.id, userId));
+}
+
 export async function findUserByUsername(username: string): Promise<UserRow | null> {
   const [row] = await getDb().select().from(users).where(eq(users.username, username.toLowerCase()));
   return row ?? null;
