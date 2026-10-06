@@ -1,4 +1,5 @@
 import { formatDateRu } from '@/domain/dates';
+import { splitMentions, type MentionMember } from '@/domain/mentions';
 import { ticketId } from '@/domain/ticketId';
 import type { Digest, DigestTask } from '@/domain/digest';
 
@@ -47,8 +48,11 @@ export function statusChangedDm(
   return lines.join('\n');
 }
 
-export function commentText(authorName: string, number: number, text: string): string {
-  return `💬 <b>${escapeHtml(authorName)}</b> · ${ticketId(number)}\n<blockquote>${escapeHtml(text)}</blockquote>`;
+export function commentText(authorName: string, number: number, text: string, members: MentionMember[] = []): string {
+  const body = splitMentions(text, members)
+    .map((seg) => (seg.type === 'text' ? escapeHtml(seg.text) : mentionHtml(seg.member)))
+    .join('');
+  return `💬 <b>${escapeHtml(authorName)}</b> · ${ticketId(number)}\n<blockquote>${body}</blockquote>`;
 }
 
 export function pingText(number: number): string {

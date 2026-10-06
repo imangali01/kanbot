@@ -297,7 +297,8 @@ export async function addComment(taskId: number, userId: number, text: string): 
   if (!canComment(ctx.actor)) throw new AccessError(403, 'Нет прав комментировать');
   await getDb().insert(comments).values({ taskId, authorId: userId, kind: 'comment', text });
   const [me] = await getDb().select().from(users).where(eq(users.id, userId));
-  await replyInGroup(ctx.chat.id, ctx.task.sourceMessageId, commentText(me ? displayName(me) : '?', ctx.task.number, text));
+  const members = (await listMembers(ctx.chat.id)).map((m) => ({ userId: m.id, username: m.username, name: displayName(m) }));
+  await replyInGroup(ctx.chat.id, ctx.task.sourceMessageId, commentText(me ? displayName(me) : '?', ctx.task.number, text, members));
   return getTaskDetail(taskId, userId);
 }
 

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { deadlineLabel } from '@/domain/dates';
+import { activeMention, applyMention, filterMembers, splitMentions, type MentionMember } from '@/domain/mentions';
 import { ticketId } from '@/domain/ticketId';
 import { STATUSES, STATUS_TITLES, type BoardView, type Status, type TaskDetail } from '@/domain/types';
 import { api, errorText } from './api';
@@ -18,6 +19,9 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
   const [error, setError] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [comment, setComment] = useState('');
+  const [caret, setCaret] = useState(0);
+  const [mentionIdx, setMentionIdx] = useState(0);
+  const commentRef = useRef<HTMLInputElement>(null);
   const [blockReason, setBlockReason] = useState<string | null>(null);
   const [pickAssignees, setPickAssignees] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -110,15 +114,83 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
     if (!value || busy) return;
     await run(`/api/app/tasks/${taskId}/comments`, 'POST', { text: value });
     setComment('');
+    setCaret(0);
   }
 
   const card = detail?.card;
   const selectedKeys = new Set(card?.assignees.map((a) => a.key) ?? []);
   const pickable = [...board.members, ...(card?.assignees.filter((a) => a.userId === null) ?? [])];
 
+  const mention = activeMention(comment, caret);
+  const mentionOptions = mention ? filterMembers(board.members, mention.query) : [];
+  const listOpen = mentionOptions.length > 0;
+  const activeIdx = Math.min(mentionIdx, mentionOptions.length - 1);
+
+  function pickMention(m: MentionMember) {
+    if (!mention) return;
+    const next = applyMention(comment, caret, mention.start, m);
+    setComment(next.value);
+    setCaret(next.caret);
+    setMentionIdx(0);
+    requestAnimationFrame(() => {
+      const el = commentRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(next.caret, next.caret);
+    });
+  }
+
+  function onCommentKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (listOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const n = mentionOptions.length;
+        setMentionIdx((activeIdx + (e.key === 'ArrowDown' ? 1 : n - 1)) % n);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        pickMention(mentionOptions[activeIdx]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setCaret(0);
+        return;
+      }
+    }
+    if (e.key === 'Enter') void sendComment();
+  }
+
   const footer = card && (
     <div className={s.composer}>
-      <input className={s.input} placeholder="Написать комментарий" value={comment} onChange={(e) => setComment(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void sendComment()} />
+      {listOpen && (
+        <div className={s.mentionList} role="listbox" aria-label="Упомянуть участника">
+          {mentionOptions.map((m, i) => (
+            <button
+              key={m.key}
+              role="option"
+              aria-selected={i === activeIdx}
+              className={i === activeIdx ? s.mentionItemOn : s.dropdownItem}
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => pickMention(m)}
+            >
+              <Avatar name={m.name} size={26} />
+              <span className={s.dropdownName}>{m.name}</span>
+              {m.username && <span className={s.muted}>@{m.username}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      <input
+        ref={commentRef}
+        className={s.input}
+        placeholder="Написать комментарий"
+        value={comment}
+        onChange={(e) => { setComment(e.target.value); setCaret(e.target.selectionStart ?? e.target.value.length); setMentionIdx(0); }}
+        onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
+        onKeyDown={onCommentKey}
+      />
       <button className={s.send} disabled={!comment.trim() || busy} onClick={() => void sendComment()} aria-label="Отправить комментарий">
         <IconSend size={17} />
       </button>
@@ -276,7 +348,11 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
                   <Avatar name={c.authorName ?? ''} size={28} />
                   <div className={s.commentBody}>
                     <div className={s.commentHead}><span className={s.commentName}>{c.authorName}</span><span className={s.commentTime}>{fmtDateTime(c.createdAt)}</span></div>
-                    <p className={s.commentText}>{c.text}</p>
+                    <p className={s.commentText}>
+                      {splitMentions(c.text, board.members).map((seg, i) =>
+                        seg.type === 'mention' ? <span key={i} className={s.mention}>{seg.text}</span> : seg.text,
+                      )}
+                    </p>
                   </div>
                 </div>
               ),

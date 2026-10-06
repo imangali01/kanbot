@@ -25,6 +25,18 @@ describe('messages', () => {
   it('comment keeps line breaks inside the quote and escapes the author name', () => {
     expect(commentText('<Я>', 7, 'раз\nдва')).toBe('💬 <b>&lt;Я&gt;</b> · SD-0007\n<blockquote>раз\nдва</blockquote>');
   });
+  it('comment turns mentions of members into Telegram mentions', () => {
+    const members = [
+      { userId: 1, username: 'anna_k', name: 'Анна Ким' },
+      { userId: 2, username: null, name: 'Борис <Ли>' },
+    ];
+    expect(commentText('Аня', 4, '@anna_k и @Борис_<Ли> & @nobody', members)).toBe(
+      '💬 <b>Аня</b> · SD-0004\n<blockquote>@anna_k и @Борис_&lt;Ли&gt; &amp; @nobody</blockquote>',
+    );
+    expect(commentText('Аня', 4, 'эй @Борис_Ли', [{ userId: 2, username: null, name: 'Борис Ли' }])).toBe(
+      '💬 <b>Аня</b> · SD-0004\n<blockquote>эй <a href="tg://user?id=2">Борис Ли</a></blockquote>',
+    );
+  });
   it('digest lists today and overdue', () => {
     const base = { id: 1, chatTitle: 'test', status: 'todo' as const, assigneeIds: [1] };
     const out = formatDigest({
