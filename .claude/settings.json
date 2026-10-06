@@ -4,6 +4,9 @@
     "defaultMode": "acceptEdits",
     "allow": [
       "Bash(*)",
+      "Bash(npx vercel deploy:*)",
+      "Bash(vercel deploy:*)",
+      "Bash(git push:*)",
       "PowerShell(*)",
       "Edit",
       "Write",
@@ -19,12 +22,8 @@
     "ask": [],
     "deny": [
       "Read(./.env)",
-      "Read(./.env.local)",
-      "Read(./.env.*.local)",
       "Bash(git add .env*)",
-      "Bash(git add -f .env*)",
-      "Bash(git push --force*)",
-      "Bash(git push -f*)"
+      "Bash(git add -f .env*)"
     ]
   }
 }
