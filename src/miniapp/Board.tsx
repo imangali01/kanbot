@@ -274,7 +274,7 @@ export function Board({ chatId, openTaskNumber, onBack, onAnalytics }: { chatId:
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Escape') closeSearch(); }}
             />
-            <button className={s.iconBtn} onClick={closeSearch} aria-label="Закрыть поиск"><IconClose size={18} /></button>
+            <button className={s.iconBtn} onClick={closeSearch} aria-label="Закрыть поиск"><IconClose size={16} /></button>
           </div>
         )}
         <div className={s.filters} role="group" aria-label="Фильтр по исполнителю">

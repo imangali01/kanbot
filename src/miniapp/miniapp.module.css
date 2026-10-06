@@ -25,8 +25,8 @@
 .badgeDot { position: relative; }
 .badgeDot::after { content: ''; position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 2px var(--paper); }
 
-.searchRow { display: flex; align-items: center; gap: 4px; margin-top: 10px; }
-.searchInput { flex: 1; min-width: 0; height: 40px; padding: 0 14px; border: 0; border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); color: inherit; font-size: 16px; outline: none; }
+.searchRow { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+.searchInput { flex: 1; min-width: 0; height: 34px; padding: 0 12px; border: 0; border-radius: 10px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); color: inherit; font-size: 13.5px; outline: none; }
 .searchInput:focus-visible { box-shadow: inset 0 0 0 2px var(--ink); }
 .searchInput::placeholder { color: var(--ink-3); }
 .filters { display: flex; gap: 5px; overflow-x: auto; margin: 8px -16px 0; padding: 0 16px 2px; scrollbar-width: none; }
