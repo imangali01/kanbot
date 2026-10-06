@@ -31,6 +31,8 @@ export interface BoardView {
   me: { userId: number; canCreate: boolean };
   members: AssigneeView[];
   cards: CardView[];
+  /** Меняется при любом изменении доски: клиент по нему понимает, что пора перезагрузиться. */
+  version: string;
 }
 
 export interface CommentView { id: number; kind: 'comment' | 'system'; text: string; authorName: string | null; createdAt: string }

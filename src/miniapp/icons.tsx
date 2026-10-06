@@ -64,3 +64,6 @@ export const IconReply = (p: P) => (
 export const IconChart = (p: P) => (
   <Icon {...p}><path d="M4.5 19.5h15" /><rect x="6" y="11" width="3" height="6" rx="1" /><rect x="10.5" y="6.5" width="3" height="10.5" rx="1" /><rect x="15" y="9" width="3" height="8" rx="1" /></Icon>
 );
+export const IconSearch = (p: P) => (
+  <Icon {...p}><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4 4" /></Icon>
+);

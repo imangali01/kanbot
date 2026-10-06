@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NO_ASSIGNEE, isHiddenDone, sortCards, visibleCards } from './board';
+import { NO_ASSIGNEE, isHiddenDone, matchesQuery, sortCards, visibleCards } from './board';
 import type { CardView } from './types';
 
 const card = (p: Partial<CardView>): CardView => ({
@@ -44,5 +44,36 @@ describe('sortCards', () => {
     const input = [a, b, c];
     sortCards(input, 'deadline');
     expect(ids(input)).toEqual([1, 2, 3]);
+  });
+});
+
+describe('matchesQuery', () => {
+  const c = (p: Partial<CardView>) => card({ number: 4, text: 'Выгрузить данные по области', authorName: 'Аня', assignees: [{ key: 'u:1', userId: 1, username: null, name: 'Ёлка Иванова' }], ...p });
+  it('по ID в разных записях', () => {
+    for (const q of ['SD-0004', 'sd-0004', 'sd4', '#4', '4', '0004', 'sd-00']) expect(matchesQuery(c({}), q), q).toBe(true);
+    expect(matchesQuery(c({}), 'sd-0005')).toBe(false);
+    expect(matchesQuery(c({}), '5')).toBe(false);
+  });
+  it('по слову без учёта регистра и ё/е', () => {
+    expect(matchesQuery(c({}), 'ДАННЫЕ')).toBe(true);
+    expect(matchesQuery(c({}), 'елка')).toBe(true);
+    expect(matchesQuery(c({}), 'аня')).toBe(true);
+    expect(matchesQuery(c({}), 'отчёт')).toBe(false);
+  });
+  it('стемминг: «область» находит «области», «областей», «областя»', () => {
+    for (const text of ['Данные по области', 'Нет областей', 'Новая областя', 'Областной отчёт']) {
+      expect(matchesQuery(c({ text }), 'область'), text).toBe(true);
+    }
+    expect(matchesQuery(c({ text: 'Выгрузка по регионам' }), 'область')).toBe(false);
+  });
+  it('все слова запроса должны найтись', () => {
+    expect(matchesQuery(c({}), 'данные области')).toBe(true);
+    expect(matchesQuery(c({}), 'данные регион')).toBe(false);
+  });
+  it('visibleCards: поиск показывает и старые выполненные', () => {
+    const old = c({ id: 9, number: 9, text: 'Старая область', status: 'done', doneAt: '2026-09-01T00:00:00Z' });
+    expect(visibleCards([old], { now, showAll: false, assigneeKey: null })).toHaveLength(0);
+    expect(visibleCards([old], { now, showAll: false, assigneeKey: null, query: 'области' })).toHaveLength(1);
+    expect(visibleCards([old], { now, showAll: false, assigneeKey: null, query: 'регион' })).toHaveLength(0);
   });
 });

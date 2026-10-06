@@ -167,13 +167,31 @@ export async function createTask(input: {
   return { ...created, deadline, assignees };
 }
 
+/** Дешёвый «отпечаток» доски: число и время правок задач, сумма позиций (порядок), число комментариев. */
+export async function boardVersion(chatId: number): Promise<string> {
+  const db = getDb();
+  const [[t], [c]] = await Promise.all([
+    db
+      .select({ n: sql<string>`count(*)`, u: sql<string>`coalesce(max(${tasks.updatedAt})::text, '')`, p: sql<string>`coalesce(sum(${tasks.position}), 0)::text` })
+      .from(tasks)
+      .where(eq(tasks.chatId, chatId)),
+    db
+      .select({ n: sql<string>`count(*)` })
+      .from(comments)
+      .innerJoin(tasks, eq(tasks.id, comments.taskId))
+      .where(eq(tasks.chatId, chatId)),
+  ]);
+  return [t.n, t.u, t.p, c.n].join('|');
+}
+
 export async function loadBoard(chat: ChatRow, actor: Actor): Promise<BoardView> {
-  const [items, members] = await Promise.all([fetchCards(chat.id), listMembers(chat.id)]);
+  const [version, items, members] = await Promise.all([boardVersion(chat.id), fetchCards(chat.id), listMembers(chat.id)]);
   return {
     chat: { id: chat.id, title: chat.title, type: chat.type },
     me: { userId: actor.userId, canCreate: actor.isCreator },
     members: members.map((m) => ({ key: `u:${m.id}`, userId: m.id, username: m.username, name: displayName(m) })),
     cards: items.map((i) => toCardView(i, actor)),
+    version,
   };
 }
 
