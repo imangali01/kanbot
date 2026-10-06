@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { commentText, displayName, escapeHtml, formatDigest, helpText, mentionHtml, taskCreatedText, truncate } from './messages';
+import { commentText, displayName, escapeHtml, formatDigest, helpText, mentionHtml, statusChangedDm, taskAssignedDm, taskCreatedText, ticketRef, truncate } from './messages';
 
 describe('messages', () => {
   it('escapes html', () => expect(escapeHtml('<b>&"</b>')).toBe('&lt;b&gt;&amp;"&lt;/b&gt;'));
@@ -38,13 +38,30 @@ describe('messages', () => {
     );
   });
   it('digest lists today and overdue', () => {
-    const base = { id: 1, chatTitle: 'test', status: 'todo' as const, assigneeIds: [1] };
+    const base = { id: 1, chatId: -1, chatTitle: 'test', status: 'todo' as const, assigneeIds: [1] };
     const out = formatDigest({
       today: [{ ...base, number: 1, text: 'сегодня', deadline: '2026-10-02' }],
       overdue: [{ ...base, number: 2, text: 'старое', deadline: '2026-09-30' }],
     });
     expect(out).toContain('<b>Сегодня:</b>\n• SD-0001 сегодня — test');
     expect(out).toContain('<b>Просрочено:</b>\n• SD-0002 старое — test (до 30.09.2026)');
+  });
+});
+
+describe('ticketRef', () => {
+  const url = 'https://t.me/bot/board?startapp=c-1_t4';
+  it('без ссылки — обычный текст', () => {
+    expect(ticketRef(4)).toBe('SD-0004');
+  });
+  it('со ссылкой — кликабельный номер', () => {
+    expect(ticketRef(4, url)).toBe('<a href="https://t.me/bot/board?startapp=c-1_t4">SD-0004</a>');
+  });
+  it('номер кликабелен в личных сообщениях и дайджесте', () => {
+    expect(taskAssignedDm(4, 'test', 'текст', '2026-10-07', url)).toContain('<a href="' + url + '">SD-0004</a>');
+    expect(statusChangedDm('done', 4, 'test', 'текст', 'Аня', undefined, url)).toContain('выполнена');
+    expect(statusChangedDm('done', 4, 'test', 'текст', 'Аня', undefined, url)).toContain('<a href="' + url + '">SD-0004</a>');
+    const task = { id: 1, number: 4, text: 'x', chatId: -1, chatTitle: 'test', deadline: '2026-10-07', status: 'todo' as const, assigneeIds: [1] };
+    expect(formatDigest({ today: [task], overdue: [] }, () => url)).toContain('• <a href="' + url + '">SD-0004</a> x');
   });
 });
 

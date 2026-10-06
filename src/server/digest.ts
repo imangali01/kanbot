@@ -6,12 +6,13 @@ import { buildDigests } from '@/domain/digest';
 import type { Status } from '@/domain/types';
 import { formatDigest } from '@/telegram/messages';
 import { sendDm } from '@/telegram/notifier';
+import { taskUrl } from './notifications';
 
 export async function sendDailyDigests(now: Date): Promise<number> {
   const db = getDb();
   const today = localDate(now);
   const rows = await db
-    .select({ id: tasks.id, number: tasks.number, text: tasks.text, deadline: tasks.deadline, status: tasks.status, chatTitle: chats.title })
+    .select({ id: tasks.id, number: tasks.number, text: tasks.text, chatId: chats.id, deadline: tasks.deadline, status: tasks.status, chatTitle: chats.title })
     .from(tasks)
     .innerJoin(chats, eq(chats.id, tasks.chatId))
     .where(and(eq(chats.status, 'enabled'), ne(tasks.status, 'done'), lte(tasks.deadline, today)));
@@ -31,7 +32,7 @@ export async function sendDailyDigests(now: Date): Promise<number> {
   let sent = 0;
   for (const u of recipients) {
     const digest = digests.get(u.id);
-    if (digest && (await sendDm(u.id, formatDigest(digest)))) sent++;
+    if (digest && (await sendDm(u.id, formatDigest(digest, (t) => taskUrl(t.chatId, t.number))))) sent++;
   }
   return sent;
 }

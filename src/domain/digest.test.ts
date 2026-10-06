@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildDigests, type DigestTask } from './digest';
 
-const t = (p: Partial<DigestTask>): DigestTask => ({ id: 1, number: 1, text: 'x', chatTitle: 'test', deadline: '2026-10-02', status: 'todo', assigneeIds: [], ...p });
+const t = (p: Partial<DigestTask>): DigestTask => ({ id: 1, number: 1, text: 'x', chatId: -1, chatTitle: 'test', deadline: '2026-10-02', status: 'todo', assigneeIds: [], ...p });
 
 describe('buildDigests', () => {
   it('groups today and overdue per assignee, skips done and future', () => {

@@ -1,6 +1,6 @@
 import type { Status } from './types';
 
-export interface DigestTask { id: number; number: number; text: string; chatTitle: string; deadline: string; status: Status; assigneeIds: number[] }
+export interface DigestTask { id: number; number: number; text: string; chatId: number; chatTitle: string; deadline: string; status: Status; assigneeIds: number[] }
 export interface Digest { today: DigestTask[]; overdue: DigestTask[] }
 
 export function buildDigests(tasks: DigestTask[], today: string): Map<number, Digest> {

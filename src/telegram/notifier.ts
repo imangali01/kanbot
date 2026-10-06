@@ -21,8 +21,12 @@ async function safe<T>(fn: () => Promise<T>, dmUserId?: number): Promise<T | nul
   }
 }
 
-export function sendDm(userId: number, html: string) {
-  return safe(() => tg().sendMessage(userId, html, { parse_mode: 'HTML', link_preview_options: { is_disabled: true } }), userId);
+export function sendDm(userId: number, html: string, buttons: { text: string; url: string }[] = []) {
+  const keyboard = buttons.length ? buttons.reduce((kb, b) => kb.url(b.text, b.url), new InlineKeyboard()) : undefined;
+  return safe(
+    () => tg().sendMessage(userId, html, { parse_mode: 'HTML', link_preview_options: { is_disabled: true }, reply_markup: keyboard }),
+    userId,
+  );
 }
 
 export function replyInGroup(chatId: number, replyTo: number, html: string, button?: { text: string; url: string }) {

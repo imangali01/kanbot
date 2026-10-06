@@ -18,6 +18,12 @@ export function displayName(u: { firstName: string; lastName: string | null; use
   return u.username ? `@${u.username}` : 'Без имени';
 }
 
+/** Номер задачи; со ссылкой он кликабельный и открывает карточку в Mini App. */
+export function ticketRef(number: number, url?: string): string {
+  const id = ticketId(number);
+  return url ? `<a href="${escapeHtml(url).replace(/"/g, '&quot;')}">${id}</a>` : id;
+}
+
 export interface PersonRef { userId: number | null; username: string | null; name: string | null }
 
 export function mentionHtml(p: PersonRef): string {
@@ -31,8 +37,8 @@ export function taskCreatedText(number: number, assignees: PersonRef[]): string 
   return `✅ Задача ${ticketId(number)} создана\n${who}`;
 }
 
-export function taskAssignedDm(number: number, chatTitle: string, text: string, deadline: string): string {
-  return [`📝 Новая задача ${ticketId(number)} — ${escapeHtml(chatTitle)}`, escapeHtml(truncate(text, 300)), `Дедлайн: ${formatDateRu(deadline)}`].join('\n');
+export function taskAssignedDm(number: number, chatTitle: string, text: string, deadline: string, url?: string): string {
+  return [`📝 Новая задача ${ticketRef(number, url)} — ${escapeHtml(chatTitle)}`, escapeHtml(truncate(text, 300)), `Дедлайн: ${formatDateRu(deadline)}`].join('\n');
 }
 
 export function statusChangedDm(
@@ -42,8 +48,9 @@ export function statusChangedDm(
   text: string,
   actorName: string,
   reason?: string,
+  url?: string,
 ): string {
-  const head = kind === 'done' ? `✅ Задача ${ticketId(number)} выполнена` : `⛔ Задача ${ticketId(number)} заблокирована`;
+  const head = kind === 'done' ? `✅ Задача ${ticketRef(number, url)} выполнена` : `⛔ Задача ${ticketRef(number, url)} заблокирована`;
   const lines = [`${head} — ${escapeHtml(chatTitle)}`, escapeHtml(truncate(text, 200)), `Кто: ${escapeHtml(actorName)}`];
   if (kind === 'blocked' && reason) lines.push(`Причина: ${escapeHtml(reason)}`);
   return lines.join('\n');
@@ -64,9 +71,9 @@ export function loginCodeText(code: string): string {
   return `Код входа в админку kanbot: <b>${code}</b>\nДействует 5 минут.`;
 }
 
-export function formatDigest(d: Digest): string {
+export function formatDigest(d: Digest, urlFor?: (t: DigestTask) => string | undefined): string {
   const line = (t: DigestTask, withDate: boolean) =>
-    `• ${ticketId(t.number)} ${escapeHtml(truncate(t.text, 80))} — ${escapeHtml(t.chatTitle)}${withDate ? ` (до ${formatDateRu(t.deadline)})` : ''}`;
+    `• ${ticketRef(t.number, urlFor?.(t))} ${escapeHtml(truncate(t.text, 80))} — ${escapeHtml(t.chatTitle)}${withDate ? ` (до ${formatDateRu(t.deadline)})` : ''}`;
   const parts = ['☀️ <b>Дедлайны</b>'];
   if (d.today.length) parts.push('', '<b>Сегодня:</b>', ...d.today.map((t) => line(t, false)));
   if (d.overdue.length) parts.push('', '<b>Просрочено:</b>', ...d.overdue.map((t) => line(t, true)));

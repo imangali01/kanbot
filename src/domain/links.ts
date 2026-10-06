@@ -17,3 +17,21 @@ export function supergroupMessageLink(chatId: number, messageId: number): string
   if (!s.startsWith('-100')) return null;
   return `https://t.me/c/${s.slice(4)}/${messageId}`;
 }
+
+export interface LinkButton { text: string; url: string }
+
+/** Кнопки под личным уведомлением: карточка в Mini App и (где Telegram это позволяет) исходное сообщение в группе. */
+export function taskLinkButtons(p: {
+  botUsername: string;
+  shortName: string | undefined;
+  chatId: number;
+  chatType: string;
+  taskNumber: number;
+  sourceMessageId: number;
+}): LinkButton[] {
+  const buttons: LinkButton[] = [];
+  if (p.shortName) buttons.push({ text: 'Открыть карточку', url: miniAppLink(p.botUsername, p.shortName, buildStartParam(p.chatId, p.taskNumber)) });
+  const message = p.chatType === 'supergroup' ? supergroupMessageLink(p.chatId, p.sourceMessageId) : null;
+  if (message) buttons.push({ text: 'К сообщению', url: message });
+  return buttons;
+}
