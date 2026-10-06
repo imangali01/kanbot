@@ -13,35 +13,35 @@
 .listChevron { flex: none; color: var(--ink-3); display: grid; }
 
 /* ───── шапка доски ───── */
-.top { position: sticky; top: 0; z-index: 10; background: var(--paper); padding: 16px 16px 0; }
+.top { position: sticky; top: 0; z-index: 10; background: var(--paper); padding: 10px 16px 0; }
 .titleRow { display: flex; align-items: center; gap: 4px; }
-.title { flex: 1; min-width: 0; margin: 0; font-size: 24px; font-weight: 650; letter-spacing: -0.025em; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.iconBtn { flex: none; width: 38px; height: 38px; display: grid; place-items: center; border: 0; border-radius: 12px; background: transparent; color: var(--ink-2); cursor: pointer; transition: background 0.15s, color 0.15s; }
+.title { flex: 1; min-width: 0; margin: 0; font-size: 19px; font-weight: 650; letter-spacing: -0.025em; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.iconBtn { flex: none; width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 10px; background: transparent; color: var(--ink-2); cursor: pointer; transition: background 0.15s, color 0.15s; }
 .iconBtn:hover { background: var(--surface); color: var(--ink); }
 .iconBtn:active { background: var(--surface-2); }
 .iconBtn:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 .iconBtn:disabled { opacity: 0.5; cursor: default; }
 .spin svg { animation: spin 0.8s linear infinite; }
 .badgeDot { position: relative; }
-.badgeDot::after { content: ''; position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 2px var(--paper); }
+.badgeDot::after { content: ''; position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 2px var(--paper); }
 
 .searchRow { display: flex; align-items: center; gap: 4px; margin-top: 10px; }
 .searchInput { flex: 1; min-width: 0; height: 40px; padding: 0 14px; border: 0; border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); color: inherit; font-size: 16px; outline: none; }
 .searchInput:focus-visible { box-shadow: inset 0 0 0 2px var(--ink); }
 .searchInput::placeholder { color: var(--ink-3); }
-.filters { display: flex; gap: 6px; overflow-x: auto; margin: 12px -16px 0; padding: 0 16px 2px; scrollbar-width: none; }
+.filters { display: flex; gap: 5px; overflow-x: auto; margin: 8px -16px 0; padding: 0 16px 2px; scrollbar-width: none; }
 .filters::-webkit-scrollbar { display: none; }
-.filter { flex: none; display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px; border: 0; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); color: var(--ink-2); font-size: 14px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background 0.15s, color 0.15s; }
-.filterAv { composes: filter; padding-left: 5px; }
+.filter { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border: 0; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); color: var(--ink-2); font-size: 12.5px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.filterAv { composes: filter; padding-left: 4px; }
 .filter:active { background: var(--surface-2); }
 .filter:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 .filterOn { composes: filter; background: var(--ink); color: var(--paper); }
 .filterOn:active { background: var(--ink); }
-.filterAvOn { composes: filter; background: var(--ink); color: var(--paper); padding-left: 5px; }
+.filterAvOn { composes: filter; background: var(--ink); color: var(--paper); padding-left: 4px; }
 
 /* ───── вкладки колонок ───── */
-.tabs { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); margin: 10px -16px 0; border-bottom: 1px solid var(--line); }
-.tab { display: flex; align-items: center; justify-content: center; gap: 7px; height: 44px; border: 0; background: none; color: var(--ink-2); font-size: 14px; font-weight: 550; cursor: pointer; }
+.tabs { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); margin: 6px -16px 0; border-bottom: 1px solid var(--line); }
+.tab { display: flex; align-items: center; justify-content: center; gap: 7px; height: 38px; border: 0; background: none; color: var(--ink-2); font-size: 13.5px; font-weight: 550; cursor: pointer; }
 .tab:focus-visible { outline: 2px solid var(--ink); outline-offset: -4px; border-radius: 10px; }
 .tabOn { composes: tab; color: var(--ink); }
 .tabCount { font-size: 12.5px; font-weight: 500; color: var(--ink-3); font-variant-numeric: tabular-nums; }

@@ -236,7 +236,7 @@ export function Board({ chatId, openTaskNumber, onBack, onAnalytics }: { chatId:
     const cls = avatar ? (on ? s.filterAvOn : s.filterAv) : on ? s.filterOn : s.filter;
     return (
       <button key={key ?? 'all'} className={cls} aria-pressed={on} onClick={() => setPrefs({ ...prefs, assigneeKey: on && key !== null ? null : key })}>
-        {avatar && <Avatar name={avatar} size={24} />}
+        {avatar && <Avatar name={avatar} size={20} />}
         {label}
       </button>
     );
