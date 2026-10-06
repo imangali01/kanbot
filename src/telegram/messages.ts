@@ -60,7 +60,7 @@ export function commentText(authorName: string, number: number, text: string, me
   const body = splitMentions(text, members)
     .map((seg) => (seg.type === 'text' ? escapeHtml(seg.text) : mentionHtml(seg.member)))
     .join('');
-  return `<b>${escapeHtml(authorName)}</b> · ${ticketRef(number, url)}\n${body}`;
+  return `💬 <b>${escapeHtml(authorName)}</b> · ${ticketRef(number, url)}\n\n${body}`;
 }
 
 export function pingText(number: number): string {

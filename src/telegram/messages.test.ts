@@ -20,13 +20,13 @@ describe('messages', () => {
     expect(taskCreatedText(3, [])).toBe('✅ Задача SD-0003 создана\nБез исполнителя');
   });
   it('comment is a quote block with the author in bold and escapes user input', () => {
-    expect(commentText('Аня', 4, 'a<b')).toBe('<b>Аня</b> · SD-0004\na&lt;b');
+    expect(commentText('Аня', 4, 'a<b')).toBe('💬 <b>Аня</b> · SD-0004\n\na&lt;b');
   });
-  it('comment is compact: author, ticket ID, then the text; keeps line breaks and escapes the author name', () => {
-    expect(commentText('<Я>', 7, 'раз\nдва')).toBe('<b>&lt;Я&gt;</b> · SD-0007\nраз\nдва');
+  it('comment: header with author and ticket ID, a blank line, then the text; keeps line breaks and escapes the author name', () => {
+    expect(commentText('<Я>', 7, 'раз\nдва')).toBe('💬 <b>&lt;Я&gt;</b> · SD-0007\n\nраз\nдва');
   });
   it('comment ticket ID opens the card when a link is given', () => {
-    expect(commentText('Аня', 4, 'ок', [], 'https://t.me/bot/app?startapp=c-1_t4')).toBe('<b>Аня</b> · <a href="https://t.me/bot/app?startapp=c-1_t4">SD-0004</a>\nок');
+    expect(commentText('Аня', 4, 'ок', [], 'https://t.me/bot/app?startapp=c-1_t4')).toBe('💬 <b>Аня</b> · <a href="https://t.me/bot/app?startapp=c-1_t4">SD-0004</a>\n\nок');
   });
   it('comment turns mentions of members into Telegram mentions', () => {
     const members = [
@@ -34,10 +34,10 @@ describe('messages', () => {
       { userId: 2, username: null, name: 'Борис <Ли>' },
     ];
     expect(commentText('Аня', 4, '@anna_k и @Борис_<Ли> & @nobody', members)).toBe(
-      '<b>Аня</b> · SD-0004\n@anna_k и @Борис_&lt;Ли&gt; &amp; @nobody',
+      '💬 <b>Аня</b> · SD-0004\n\n@anna_k и @Борис_&lt;Ли&gt; &amp; @nobody',
     );
     expect(commentText('Аня', 4, 'эй @Борис_Ли', [{ userId: 2, username: null, name: 'Борис Ли' }])).toBe(
-      '<b>Аня</b> · SD-0004\nэй <a href="tg://user?id=2">Борис Ли</a>',
+      '💬 <b>Аня</b> · SD-0004\n\nэй <a href="tg://user?id=2">Борис Ли</a>',
     );
   });
   it('digest lists today and overdue', () => {
