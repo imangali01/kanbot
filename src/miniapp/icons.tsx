@@ -67,3 +67,6 @@ export const IconChart = (p: P) => (
 export const IconSearch = (p: P) => (
   <Icon {...p}><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4 4" /></Icon>
 );
+export const IconHistory = (p: P) => (
+  <Icon {...p}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></Icon>
+);

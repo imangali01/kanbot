@@ -269,3 +269,13 @@
 .personName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
 .noAvatar { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--surface-2); color: var(--ink-3); font-weight: 650; }
 .anFilters { composes: filters; margin-top: 0; margin-bottom: 12px; }
+
+/* ───── история карточки ───── */
+.historyHead { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.historyTitle { margin: 0; font-size: 17px; font-weight: 600; }
+.history { display: flex; flex-direction: column; gap: 14px; }
+.histItem { display: flex; flex-direction: column; gap: 2px; padding-left: 14px; border-left: 2px solid var(--line-strong); font-size: 14.5px; line-height: 1.42; }
+.histComment { composes: histItem; border-left-color: var(--s2); }
+.histMeta { font-size: 12px; color: var(--ink-3); }
+.histWho { font-weight: 600; }
+.histText { word-break: break-word; white-space: pre-wrap; }

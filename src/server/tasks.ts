@@ -6,17 +6,19 @@ import { tomorrow } from '@/domain/dates';
 import { supergroupMessageLink } from '@/domain/links';
 import { placeCard, topPosition } from '@/domain/ordering';
 import type { AssigneeRef } from '@/domain/parseTaskCommand';
-import { canComment, canDelete, canEdit, canEditText, canView, type Actor, type TaskAccessRef } from '@/domain/permissions';
-import type { AnalyticsDays, AnalyticsView, AssigneeView, BoardView, CardView, CommentView, Status, TaskDetail } from '@/domain/types';
+import { mergeHistory } from '@/domain/events';
+import { canChangeAuthor, canComment, canDelete, canEdit, canEditText, canView, type Actor, type TaskAccessRef } from '@/domain/permissions';
+import type { AnalyticsDays, AnalyticsView, AssigneeView, BoardView, CardView, CommentView, HistoryItem, Status, TaskDetail } from '@/domain/types';
 import { commentText, displayName, pingText } from '@/telegram/messages';
 import { deleteMessage, replyInGroup } from '@/telegram/notifier';
 import { getActor, getChat, listMembers, type ChatRow } from './chats';
 import { AccessError } from './errors';
+import { loadEvents, recordEvent } from './events';
 import { notifyAuthorStatus, taskUrl } from './notifications';
 import { findUserByUsername, upsertUser } from './users';
 
 export type TaskRow = typeof tasks.$inferSelect;
-export interface TaskPatch { text?: string; stars?: number; deadline?: string; assigneeKeys?: string[] }
+export interface TaskPatch { text?: string; stars?: number; deadline?: string; assigneeKeys?: string[]; authorId?: number }
 type AssigneeRow = { userId: number | null; username: string | null };
 interface CardItem { row: TaskRow; assignees: AssigneeView[]; authorName: string }
 
@@ -82,6 +84,7 @@ function toCardView(item: CardItem, actor: Actor): CardView {
     canEdit: canEdit(actor, ref),
     canEditText: canEditText(actor, ref),
     canDelete: canDelete(actor, ref),
+    canChangeAuthor: canChangeAuthor(actor),
   };
 }
 
@@ -125,6 +128,13 @@ async function resolveKeys(keys: string[]): Promise<AssigneeRow[]> {
   return out;
 }
 
+async function rowNames(rows: AssigneeRow[]): Promise<string[]> {
+  const ids = rows.flatMap((r) => (r.userId === null ? [] : [r.userId]));
+  const found = ids.length ? await getDb().select().from(users).where(inArray(users.id, ids)) : [];
+  const byId = new Map(found.map((u) => [u.id, u]));
+  return rows.map((r) => (r.userId === null ? `@${r.username}` : displayName(byId.get(r.userId) ?? unknownUser)));
+}
+
 export async function createTask(input: {
   chat: ChatRow;
   authorId: number;
@@ -136,6 +146,8 @@ export async function createTask(input: {
   const assignees = await resolveRefs(input.assignees);
   const deadline = tomorrow(input.now);
   const db = getDb();
+  const [author] = await db.select().from(users).where(eq(users.id, input.authorId));
+  const assigneeNames = await rowNames(assignees);
   const created = await db.transaction(async (tx) => {
     const [counter] = await tx
       .update(chats)
@@ -162,6 +174,12 @@ export async function createTask(input: {
       })
       .returning({ id: tasks.id });
     if (assignees.length) await tx.insert(taskAssignees).values(assignees.map((a) => ({ taskId: task.id, ...a })));
+    await recordEvent(tx, {
+      taskId: task.id,
+      actorId: input.authorId,
+      type: 'created',
+      payload: { author: displayName(author ?? unknownUser), assignees: assigneeNames },
+    });
     return { id: task.id, number };
   });
   return { ...created, deadline, assignees };
@@ -227,6 +245,22 @@ export async function getTaskDetail(taskId: number, userId: number): Promise<Tas
   return { card: toCardView(ctx.item, ctx.actor), comments: await loadComments(taskId) };
 }
 
+export async function getTaskHistory(taskId: number, userId: number): Promise<HistoryItem[]> {
+  const ctx = await loadContext(taskId, userId);
+  const events = await loadEvents(taskId);
+  // у тикетов, созданных до появления журнала, нет события «создан» — достраиваем из самой карточки
+  if (!events.some((e) => e.type === 'created')) {
+    events.unshift({
+      id: 0,
+      type: 'created',
+      payload: { author: ctx.item.authorName, assignees: [] },
+      actorName: ctx.item.authorName,
+      createdAt: ctx.task.createdAt.toISOString(),
+    });
+  }
+  return mergeHistory(events, await loadComments(taskId));
+}
+
 export async function moveTask(taskId: number, userId: number, input: { status: Status; aboveId: number | null }): Promise<BoardView> {
   const ctx = await loadContext(taskId, userId);
   if (!canEdit(ctx.actor, ctx.ref)) throw new AccessError(403, 'Нет прав двигать эту карточку');
@@ -256,9 +290,8 @@ export async function moveTask(taskId: number, userId: number, input: { status: 
         })
         .where(eq(tasks.id, taskId));
     }
-    if (unblock) {
-      await tx.insert(comments).values({ taskId, authorId: null, kind: 'system', text: `Разблокировано. Причина была: ${ctx.task.blockedReason ?? ''}` });
-    }
+    if (prev !== input.status) await recordEvent(tx, { taskId, actorId: userId, type: 'status', payload: { from: prev, to: input.status } });
+    if (unblock) await recordEvent(tx, { taskId, actorId: userId, type: 'unblocked', payload: { reason: ctx.task.blockedReason } });
   });
 
   if (input.status === 'done' && prev !== 'done') await notifyAuthorStatus(ctx.task, ctx.chat, userId, 'done');
@@ -271,7 +304,26 @@ export async function updateTask(taskId: number, userId: number, patch: TaskPatc
   const touchesFields = patch.stars !== undefined || patch.deadline !== undefined || patch.assigneeKeys !== undefined;
   if (touchesFields && !canEdit(ctx.actor, ctx.ref)) throw new AccessError(403, 'Нет прав редактировать карточку');
 
+  const newAuthorId = patch.authorId !== undefined && patch.authorId !== ctx.task.authorId ? patch.authorId : null;
+  let newAuthorName = '';
+  if (newAuthorId !== null) {
+    if (!canChangeAuthor(ctx.actor)) throw new AccessError(403, 'Нет прав менять постановщика');
+    const member = (await listMembers(ctx.chat.id)).find((m) => m.id === newAuthorId);
+    if (!member) throw new AccessError(400, 'Постановщик должен быть участником чата');
+    newAuthorName = displayName(member);
+  }
+
   const assignees = patch.assigneeKeys ? await resolveKeys(patch.assigneeKeys) : null;
+  const newNames = assignees ? await rowNames(assignees) : [];
+  const oldKeys = new Set(ctx.item.assignees.map((a) => a.key));
+  const assigneesChanged =
+    assignees !== null &&
+    (assignees.length !== oldKeys.size || assignees.some((a) => !oldKeys.has(a.userId !== null ? `u:${a.userId}` : `n:${a.username}`)));
+  const t = ctx.task;
+  const textChanged = patch.text !== undefined && patch.text !== t.text;
+  const starsChanged = patch.stars !== undefined && patch.stars !== t.stars;
+  const deadlineChanged = patch.deadline !== undefined && patch.deadline !== t.deadline;
+
   await getDb().transaction(async (tx) => {
     await tx
       .update(tasks)
@@ -280,12 +332,19 @@ export async function updateTask(taskId: number, userId: number, patch: TaskPatc
         ...(patch.text !== undefined ? { text: patch.text } : {}),
         ...(patch.stars !== undefined ? { stars: patch.stars } : {}),
         ...(patch.deadline !== undefined ? { deadline: patch.deadline } : {}),
+        ...(newAuthorId !== null ? { authorId: newAuthorId } : {}),
       })
       .where(eq(tasks.id, taskId));
     if (assignees) {
       await tx.delete(taskAssignees).where(eq(taskAssignees.taskId, taskId));
       if (assignees.length) await tx.insert(taskAssignees).values(assignees.map((a) => ({ taskId, ...a })));
     }
+    const ev = { taskId, actorId: userId };
+    if (textChanged) await recordEvent(tx, { ...ev, type: 'text', payload: { from: t.text, to: patch.text! } });
+    if (starsChanged) await recordEvent(tx, { ...ev, type: 'stars', payload: { from: t.stars, to: patch.stars! } });
+    if (deadlineChanged) await recordEvent(tx, { ...ev, type: 'deadline', payload: { from: t.deadline, to: patch.deadline! } });
+    if (assigneesChanged) await recordEvent(tx, { ...ev, type: 'assignees', payload: { from: ctx.item.assignees.map((a) => a.name), to: newNames } });
+    if (newAuthorId !== null) await recordEvent(tx, { ...ev, type: 'author', payload: { from: ctx.item.authorName, to: newAuthorName } });
   });
   return getTaskDetail(taskId, userId);
 }
@@ -293,7 +352,10 @@ export async function updateTask(taskId: number, userId: number, patch: TaskPatc
 export async function blockTask(taskId: number, userId: number, reason: string): Promise<TaskDetail> {
   const ctx = await loadContext(taskId, userId);
   if (!canEdit(ctx.actor, ctx.ref)) throw new AccessError(403, 'Нет прав редактировать карточку');
-  await getDb().update(tasks).set({ blocked: true, blockedReason: reason, updatedAt: new Date() }).where(eq(tasks.id, taskId));
+  await getDb().transaction(async (tx) => {
+    await tx.update(tasks).set({ blocked: true, blockedReason: reason, updatedAt: new Date() }).where(eq(tasks.id, taskId));
+    await recordEvent(tx, { taskId, actorId: userId, type: 'blocked', payload: { reason } });
+  });
   if (!ctx.task.blocked) await notifyAuthorStatus(ctx.task, ctx.chat, userId, 'blocked', reason);
   return getTaskDetail(taskId, userId);
 }
@@ -304,7 +366,7 @@ export async function unblockTask(taskId: number, userId: number): Promise<TaskD
   if (ctx.task.blocked) {
     await getDb().transaction(async (tx) => {
       await tx.update(tasks).set({ blocked: false, blockedReason: null, updatedAt: new Date() }).where(eq(tasks.id, taskId));
-      await tx.insert(comments).values({ taskId, authorId: null, kind: 'system', text: `Разблокировано. Причина была: ${ctx.task.blockedReason ?? ''}` });
+      await recordEvent(tx, { taskId, actorId: userId, type: 'unblocked', payload: { reason: ctx.task.blockedReason } });
     });
   }
   return getTaskDetail(taskId, userId);

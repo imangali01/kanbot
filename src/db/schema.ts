@@ -1,4 +1,4 @@
-import { bigint, bigserial, boolean, date, doublePrecision, index, integer, pgTable, primaryKey, smallint, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { bigint, bigserial, boolean, date, doublePrecision, index, integer, jsonb, pgTable, primaryKey, smallint, text, timestamp, unique } from 'drizzle-orm/pg-core';
 
 const tg = (name: string) => bigint(name, { mode: 'number' });
 const ts = (name: string) => timestamp(name, { withTimezone: true });
@@ -70,6 +70,15 @@ export const comments = pgTable('comments', {
   text: text('text').notNull(),
   createdAt: ts('created_at').notNull().defaultNow(),
 }, (t) => [index('comments_task_idx').on(t.taskId)]);
+
+export const taskEvents = pgTable('task_events', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  taskId: bigint('task_id', { mode: 'number' }).notNull().references(() => tasks.id, { onDelete: 'cascade' }),
+  actorId: tg('actor_id').references(() => users.id, { onDelete: 'set null' }),
+  type: text('type').notNull(),
+  payload: jsonb('payload').notNull(),
+  createdAt: ts('created_at').notNull().defaultNow(),
+}, (t) => [index('task_events_task_idx').on(t.taskId)]);
 
 export const adminLoginCodes = pgTable('admin_login_codes', {
   username: text('username').primaryKey(),

@@ -3,10 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 import { deadlineLabel } from '@/domain/dates';
 import { activeMention, applyMention, filterMembers, splitMentions, type MentionMember } from '@/domain/mentions';
 import { ticketId } from '@/domain/ticketId';
-import { STATUSES, STATUS_TITLES, type BoardView, type Status, type TaskDetail } from '@/domain/types';
+import { STATUSES, STATUS_TITLES, type BoardView, type HistoryItem, type Status, type TaskDetail } from '@/domain/types';
 import { api, errorText } from './api';
 import { Avatar } from './Avatar';
-import { IconCalendar, IconCheck, IconChevronDown, IconLock, IconMore, IconReply, IconSend, IconStar, IconTrash, IconUser, IconUsers } from './icons';
+import { IconCalendar, IconCheck, IconChevronDown, IconHistory, IconLock, IconMore, IconReply, IconSend, IconStar, IconTrash, IconUser, IconUsers } from './icons';
 import { Sheet } from './Sheet';
 import { confirmDialog, webApp } from './telegram';
 import s from './miniapp.module.css';
@@ -24,23 +24,40 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
   const commentRef = useRef<HTMLInputElement>(null);
   const [blockReason, setBlockReason] = useState<string | null>(null);
   const [pickAssignees, setPickAssignees] = useState(false);
+  const [pickAuthor, setPickAuthor] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[] | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
+  const authorRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // дропдауны закрываются по тапу мимо них
   useEffect(() => {
-    if (!pickAssignees && !menuOpen) return;
+    if (!pickAssignees && !pickAuthor && !menuOpen) return;
     const onDown = (e: PointerEvent) => {
       const target = e.target as Node;
       if (pickAssignees && !pickerRef.current?.contains(target)) setPickAssignees(false);
+      if (pickAuthor && !authorRef.current?.contains(target)) setPickAuthor(false);
       if (menuOpen && !menuRef.current?.contains(target)) setMenuOpen(false);
     };
     document.addEventListener('pointerdown', onDown);
     return () => document.removeEventListener('pointerdown', onDown);
-  }, [pickAssignees, menuOpen]);
+  }, [pickAssignees, pickAuthor, menuOpen]);
+
+  async function openHistory() {
+    setHistoryOpen(true);
+    setHistory(null);
+    setHistoryError(null);
+    try {
+      setHistory(await api<HistoryItem[]>(`/api/app/tasks/${taskId}/history`));
+    } catch (e) {
+      setHistoryError(errorText(e));
+    }
+  }
 
   useEffect(() => {
     api<TaskDetail>(`/api/app/tasks/${taskId}`)
@@ -162,7 +179,11 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
     if (e.key === 'Enter') void sendComment();
   }
 
-  const footer = card && (
+  const authorOptions = card && !board.members.some((m) => m.userId === card.authorId)
+    ? [{ key: `u:${card.authorId}`, userId: card.authorId, username: null, name: card.authorName }, ...board.members]
+    : board.members;
+
+  const footer = card && !historyOpen && (
     <div className={s.composer}>
       {listOpen && (
         <div className={s.mentionList} role="listbox" aria-label="Упомянуть участника">
@@ -201,6 +222,34 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
     <Sheet onClose={onClose} label="Карточка задачи" footer={footer}>
       {!card ? (
         <div className={s.center}>{error ?? 'Загрузка…'}</div>
+      ) : historyOpen ? (
+        <>
+          <div className={s.historyHead}>
+            <button className={s.iconBtn} aria-label="Назад к карточке" onClick={() => setHistoryOpen(false)}><span style={{ display: 'flex', transform: 'rotate(90deg)' }}><IconChevronDown size={20} /></span></button>
+            <h3 className={s.historyTitle}>История {ticketId(card.number)}</h3>
+          </div>
+          {historyError && (
+            <div className={s.center}>
+              <p className={s.errorLine} role="alert">{historyError}</p>
+              <button className={s.chipBtn} onClick={() => void openHistory()}>Повторить</button>
+            </div>
+          )}
+          {!historyError && !history && <div className={s.center}>Загрузка…</div>}
+          {history && (
+            <div className={s.history}>
+              {history.map((h) => (
+                <div key={h.id} className={h.kind === 'comment' ? s.histComment : s.histItem}>
+                  <span className={s.histMeta}>{fmtDateTime(h.createdAt)}</span>
+                  <span className={s.histText}>
+                    {h.actorName && <span className={s.histWho}>{h.actorName}</span>}
+                    {h.kind === 'comment' ? ' написал: ' : h.actorName ? ' ' : ''}
+                    {h.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       ) : (
         <>
           <div className={s.headRow}>
@@ -316,17 +365,51 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
             <div className={s.prop}>
               <span className={s.propIcon}><IconUser size={18} /></span>
               <span className={s.propLabel}>Поставил</span>
-              <div className={s.propValue}>
-                <div className={s.stack}>
-                  <span>{card.authorName}</span>
-                  <span className={s.muted}>{fmtDateTime(card.createdAt)}</span>
+              {card.canChangeAuthor ? (
+                <div className={s.picker} ref={authorRef}>
+                  <button className={s.pickerToggle} disabled={busy} aria-haspopup="listbox" aria-expanded={pickAuthor} onClick={() => setPickAuthor(!pickAuthor)}>
+                    <div className={s.stack}>
+                      <span>{card.authorName}</span>
+                      <span className={s.muted}>{fmtDateTime(card.createdAt)}</span>
+                    </div>
+                    <span className={s.pickerChevron}><IconChevronDown size={16} /></span>
+                  </button>
+                  {pickAuthor && (
+                    <div className={s.dropdown} role="listbox" aria-label="Кто поставил задачу">
+                      {authorOptions.map((m) => (
+                        <button
+                          key={m.key}
+                          role="option"
+                          aria-selected={m.userId === card.authorId}
+                          className={s.dropdownItem}
+                          disabled={busy}
+                          onClick={() => {
+                            setPickAuthor(false);
+                            if (m.userId !== null && m.userId !== card.authorId) void patch({ authorId: m.userId });
+                          }}
+                        >
+                          <Avatar name={m.name} size={26} />
+                          <span className={s.dropdownName}>{m.name}</span>
+                          <span className={m.userId === card.authorId ? s.checkOn : s.check}>{m.userId === card.authorId && <IconCheck size={14} />}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
+              ) : (
+                <div className={s.propValue}>
+                  <div className={s.stack}>
+                    <span>{card.authorName}</span>
+                    <span className={s.muted}>{fmtDateTime(card.createdAt)}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           <div className={s.actions}>
             <button className={s.chipBtnPrimary} onClick={() => void showInChat()}><IconReply size={13} />Показать в чате</button>
+            <button className={s.chipBtn} onClick={() => void openHistory()}><IconHistory size={13} />История</button>
             {card.canEdit && !card.blocked && blockReason === null && <button className={s.chipBtn} onClick={() => setBlockReason('')}><IconLock size={13} />Заблокировать</button>}
           </div>
 

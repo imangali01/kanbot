@@ -24,6 +24,7 @@ export interface CardView {
   canEdit: boolean;
   canEditText: boolean;
   canDelete: boolean;
+  canChangeAuthor: boolean;
 }
 
 export interface BoardView {
@@ -36,6 +37,13 @@ export interface BoardView {
 }
 
 export interface CommentView { id: number; kind: 'comment' | 'system'; text: string; authorName: string | null; createdAt: string }
+export interface HistoryItem {
+  id: string;
+  kind: 'event' | 'comment';
+  actorName: string | null;
+  text: string;
+  createdAt: string;
+}
 export interface TaskDetail { card: CardView; comments: CommentView[] }
 export interface ChatSummary { id: number; title: string }
 

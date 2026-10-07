@@ -5,7 +5,7 @@ import type { CardView } from './types';
 const card = (p: Partial<CardView>): CardView => ({
   id: 1, number: 1, text: 't', status: 'todo', position: 0, stars: 1, deadline: '2026-10-03', blocked: false,
   blockedReason: null, createdAt: '2026-10-01T00:00:00.000Z', doneAt: null, authorId: 1, authorName: 'A',
-  assignees: [], canEdit: true, canEditText: true, canDelete: true, ...p,
+  assignees: [], canEdit: true, canEditText: true, canDelete: true, canChangeAuthor: false, ...p,
 });
 const now = new Date('2026-11-15T00:00:00Z');
 

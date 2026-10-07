@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canComment, canCreate, canDelete, canEdit, canEditText, canView, computeIsCreator, type Actor } from './permissions';
+import { canChangeAuthor, canComment, canCreate, canDelete, canEdit, canEditText, canView, computeIsCreator, type Actor } from './permissions';
 
 const actor = (p: Partial<Actor> = {}): Actor => ({ userId: 1, isSuperadmin: false, isMember: true, isCreator: false, ...p });
 const task = { authorId: 100, assigneeIds: [1, 2] };
@@ -48,5 +48,10 @@ describe('permissions', () => {
   });
   it('non-member cannot edit even as assignee', () => {
     expect(canEdit(actor({ isMember: false }), task)).toBe(false);
+  });
+  it('change author: only those who can create tickets', () => {
+    expect(canChangeAuthor(actor({ isCreator: true }))).toBe(true);
+    expect(canChangeAuthor(actor({ userId: 100 }))).toBe(false);
+    expect(canChangeAuthor(actor({ isCreator: true, isMember: false }))).toBe(true);
   });
 });

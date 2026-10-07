@@ -28,3 +28,7 @@ export function canEditText(a: Actor, t: TaskAccessRef): boolean {
 export function canDelete(a: Actor, t: TaskAccessRef): boolean {
   return a.isSuperadmin || (a.isMember && t.authorId === a.userId);
 }
+
+export function canChangeAuthor(a: Actor): boolean {
+  return canCreate(a);
+}
