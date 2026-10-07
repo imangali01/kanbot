@@ -11,6 +11,11 @@ Next.js (App Router, TypeScript) на Vercel (регион `bom1`) · Supabase P
 - `npm run typecheck` · `npm run build`
 - `npm run db:generate` / `npm run db:migrate` — миграции Drizzle
 
+## Деплой
+- `/deploy` (`.claude/commands/deploy.md`) — деплой на Vercel по `docs/deploy-vercel.md`. GitHub-интеграция Vercel не подключена, `git push` деплой не запускает: деплоим только CLI `VERCEL_TOKEN="$(cat ~/.vercel-token)" npx --yes vercel deploy --prod --yes`. Токен лежит в `~/.vercel-token` (в чат и файлы не копировать).
+- Порядок: миграция БД (если менялась схема) → тесты/typecheck/build → push в `main` → deploy → проверка, что новый маршрут отвечает 401, а не 404.
+- После изменений, которые должны попасть на прод, предлагать запустить `/deploy`.
+
 ## Правила
 - Секреты только в `.env.local` (gitignored). Не читать его в контекст, не коммитить, не вставлять токен в код или логи.
 - `src/domain/` — без импортов БД, сети и `process.env`; всё, что можно, проверяется там юнит-тестами.
