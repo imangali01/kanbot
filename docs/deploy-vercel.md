@@ -23,6 +23,7 @@ VERCEL_TOKEN="$(cat ~/.vercel-token)" npx --yes vercel deploy --prod --yes
 ## Заметки
 
 - Токен Vercel лежит в `~/.vercel-token` (`C:\Users\BMG\.vercel-token`), вне репозитория. В чат, память и файлы проекта его не копировать. Без `VERCEL_TOKEN` CLI отвечает `Not authorized`, если не выполнен `vercel login`.
+- Если деплой отвечает `Not authorized`, `permission to create a Production Deployment` или `token ... is not valid`, токен просрочен или отозван. Нужно создать новый на https://vercel.com/account/tokens (с доступом к команде проекта) и записать его в `~/.vercel-token` без перевода строки.
 - Проект привязан (`.vercel/`, в `.gitignore`). CLI заливает локальные файлы, коммит для деплоя не нужен.
 - Переменные окружения прода лежат в Vercel (Project → Settings → Environment Variables); `.env.local` только для локальной работы и миграций.
 - Прод-деплой Claude Code может блокироваться режимом разрешений: тогда команду запускает пользователь. В `.claude/settings.json` разрешён `npx vercel deploy`.
