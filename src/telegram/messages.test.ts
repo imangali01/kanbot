@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { commentText, displayName, escapeHtml, formatDigest, helpText, mentionHtml, statusChangedDm, taskAssignedDm, taskCreatedText, ticketRef, truncate } from './messages';
+import { commentText, displayName, escapeHtml, formatDigest, helpText, mentionHtml, statusChangedDm, taskAssignedDm, taskCreatedText, taskMovedText, ticketRef, truncate } from './messages';
 
 describe('messages', () => {
   it('escapes html', () => expect(escapeHtml('<b>&"</b>')).toBe('&lt;b&gt;&amp;"&lt;/b&gt;'));
@@ -18,6 +18,10 @@ describe('messages', () => {
   it('task created text', () => {
     expect(taskCreatedText(12, [{ userId: null, username: 'laderlapen', name: null }])).toBe('✅ Задача SD-0012 создана\nИсполнители: @laderlapen');
     expect(taskCreatedText(3, [])).toBe('✅ Задача SD-0003 создана\nБез исполнителя');
+  });
+  it('task moved text names the actor and both columns; done reads as completed', () => {
+    expect(taskMovedText(5, 'Аня <x>', 'todo', 'in_progress')).toBe('🔀 Задача SD-0005 перенесена\nTodo → In progress\nКто: Аня &lt;x&gt;');
+    expect(taskMovedText(5, 'Аня', 'in_progress', 'done')).toBe('✅ Задача SD-0005 выполнена\nIn progress → Done\nКто: Аня');
   });
   it('comment is a quote block with the author in bold and escapes user input', () => {
     expect(commentText('Аня', 4, 'a<b')).toBe('💬 <b>Аня</b> · SD-0004\n\na&lt;b');

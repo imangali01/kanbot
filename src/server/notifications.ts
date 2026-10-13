@@ -3,7 +3,8 @@ import { getDb } from '@/db/client';
 import { users, type tasks } from '@/db/schema';
 import { buildStartParam, miniAppLink, taskLinkButtons } from '@/domain/links';
 import { env } from '@/env';
-import { displayName, statusChangedDm, taskAssignedDm, taskCreatedText, type PersonRef } from '@/telegram/messages';
+import type { Status } from '@/domain/types';
+import { displayName, statusChangedDm, taskAssignedDm, taskCreatedText, taskMovedText, type PersonRef } from '@/telegram/messages';
 import { replyInGroup, sendDm } from '@/telegram/notifier';
 import type { ChatRow } from './chats';
 import { getUsers } from './users';
@@ -46,6 +47,18 @@ export async function notifyTaskCreated(p: {
     if (u.startedBot && u.id !== p.authorId) {
       await sendDm(u.id, taskAssignedDm(p.taskNumber, p.chat.title, p.text, p.deadline, taskUrl(p.chat.id, p.taskNumber)), taskButtons(p.chat, p.taskNumber, p.sourceMessageId));
     }
+  }
+}
+
+/** Смена колонки: личное сообщение автору и исполнителям (кроме того, кто перетащил). В группу reply уходит только при переносе в Done. */
+export async function notifyTaskMoved(p: { task: TaskRow; chat: ChatRow; actorId: number; assigneeIds: number[]; from: Status; to: Status }): Promise<void> {
+  const { task, chat } = p;
+  const [actor] = await getDb().select().from(users).where(eq(users.id, p.actorId));
+  const html = taskMovedText(task.number, actor ? displayName(actor) : '?', p.from, p.to, taskUrl(chat.id, task.number));
+  if (p.to === 'done') await replyInGroup(chat.id, task.sourceMessageId, html);
+  const recipients = await getUsers([...new Set([task.authorId, ...p.assigneeIds])].filter((id) => id !== p.actorId));
+  for (const u of recipients) {
+    if (u.startedBot) await sendDm(u.id, html, taskButtons(chat, task.number, task.sourceMessageId));
   }
 }
 

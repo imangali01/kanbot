@@ -14,7 +14,7 @@ import { deleteMessage, replyInGroup } from '@/telegram/notifier';
 import { getActor, getChat, listMembers, type ChatRow } from './chats';
 import { AccessError } from './errors';
 import { loadEvents, recordEvent } from './events';
-import { notifyAuthorStatus, taskUrl } from './notifications';
+import { notifyAuthorStatus, notifyTaskMoved, taskUrl } from './notifications';
 import { findUserByUsername, upsertUser } from './users';
 
 export type TaskRow = typeof tasks.$inferSelect;
@@ -294,7 +294,7 @@ export async function moveTask(taskId: number, userId: number, input: { status: 
     if (unblock) await recordEvent(tx, { taskId, actorId: userId, type: 'unblocked', payload: { reason: ctx.task.blockedReason } });
   });
 
-  if (input.status === 'done' && prev !== 'done') await notifyAuthorStatus(ctx.task, ctx.chat, userId, 'done');
+  if (prev !== input.status) await notifyTaskMoved({ task: ctx.task, chat: ctx.chat, actorId: userId, assigneeIds: ctx.ref.assigneeIds, from: prev, to: input.status });
   return loadBoard(ctx.chat, ctx.actor);
 }
 

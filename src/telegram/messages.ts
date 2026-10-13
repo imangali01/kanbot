@@ -1,6 +1,7 @@
 import { formatDateRu } from '@/domain/dates';
 import { splitMentions, type MentionMember } from '@/domain/mentions';
 import { ticketId } from '@/domain/ticketId';
+import { STATUS_TITLES, type Status } from '@/domain/types';
 import type { Digest, DigestTask } from '@/domain/digest';
 
 export function escapeHtml(s: string): string {
@@ -54,6 +55,11 @@ export function statusChangedDm(
   const lines = [`${head} — ${escapeHtml(chatTitle)}`, escapeHtml(truncate(text, 200)), `Кто: ${escapeHtml(actorName)}`];
   if (kind === 'blocked' && reason) lines.push(`Причина: ${escapeHtml(reason)}`);
   return lines.join('\n');
+}
+
+export function taskMovedText(number: number, actorName: string, from: Status, to: Status, url?: string): string {
+  const head = to === 'done' ? `✅ Задача ${ticketRef(number, url)} выполнена` : `🔀 Задача ${ticketRef(number, url)} перенесена`;
+  return [head, `${STATUS_TITLES[from]} → ${STATUS_TITLES[to]}`, `Кто: ${escapeHtml(actorName)}`].join('\n');
 }
 
 export function commentText(authorName: string, number: number, text: string, members: MentionMember[] = [], url?: string): string {
