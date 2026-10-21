@@ -40,7 +40,14 @@ export function daysUntil(deadline: string, now: Date): number {
   return dayNumber(deadline) - dayNumber(localDate(now));
 }
 
-export function deadlineLabel(deadline: string, now: Date): string {
+/** Для выполненной карточки срок сверяется с датой выполнения, а не с сегодняшним днём. */
+export function doneLabel(deadline: string, doneAt: Date): string {
+  const late = -daysUntil(deadline, doneAt);
+  return late > 0 ? `выполнено с опозданием ${late} дн.` : 'выполнено в срок';
+}
+
+export function deadlineLabel(deadline: string, now: Date, doneAt?: string | null): string {
+  if (doneAt) return doneLabel(deadline, new Date(doneAt));
   const diff = daysUntil(deadline, now);
   if (diff < 0) return `просрочено ${-diff} дн.`;
   if (diff === 0) return 'сегодня';

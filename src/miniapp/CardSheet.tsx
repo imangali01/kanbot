@@ -346,7 +346,7 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
               <span className={s.propLabel}>Срок</span>
               <div className={s.propValueRow}>
                 <input type="date" required className={s.dateInput} value={card.deadline} disabled={!card.canEdit || busy} aria-label="Срок выполнения" onChange={(e) => e.target.value && void patch({ deadline: e.target.value })} />
-                <span className={s.muted}>{deadlineLabel(card.deadline, new Date())}</span>
+                <span className={s.muted}>{deadlineLabel(card.deadline, new Date(), card.status === 'done' ? card.doneAt : null)}</span>
               </div>
             </div>
 

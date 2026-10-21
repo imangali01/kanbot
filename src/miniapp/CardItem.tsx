@@ -26,7 +26,7 @@ export function CardBody({ card }: { card: CardView }) {
         <span className={s.stars} aria-label={`Сложность ${card.stars} из 5`}>
           {Array.from({ length: card.stars }, (_, i) => <IconStar key={i} size={13} filled />)}
         </span>
-        <span className={dueClass}>{deadlineLabel(card.deadline, now)}</span>
+        <span className={dueClass}>{deadlineLabel(card.deadline, now, card.status === 'done' ? card.doneAt : null)}</span>
         {card.assignees.length > 0 && (
           <span className={s.avatars}>
             {card.assignees.slice(0, 3).map((a) => <Avatar key={a.key} name={a.name} stacked />)}

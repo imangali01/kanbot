@@ -40,6 +40,11 @@ describe('deadlineLabel', () => {
     expect(deadlineLabel('2026-10-15', now)).toBe('15 окт');
     expect(deadlineLabel('2027-01-03', now)).toBe('3 янв 2027');
   });
+  it('done cards compare the deadline with the completion date, not today', () => {
+    expect(deadlineLabel('2026-09-20', now, '2026-09-19T10:00:00Z')).toBe('выполнено в срок');
+    expect(deadlineLabel('2026-09-20', now, '2026-09-20T10:00:00Z')).toBe('выполнено в срок');
+    expect(deadlineLabel('2026-09-20', now, '2026-09-23T10:00:00Z')).toBe('выполнено с опозданием 3 дн.');
+  });
   it('counts days from the Almaty date, not UTC', () => {
     expect(deadlineLabel('2026-10-03', new Date('2026-10-02T19:30:00Z'))).toBe('сегодня');
   });
