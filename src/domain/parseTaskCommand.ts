@@ -5,6 +5,7 @@ export interface IncomingMessage {
   text?: string;
   caption?: string;
   entities?: MsgEntity[];
+  caption_entities?: MsgEntity[];
   reply_to_message?: IncomingMessage;
 }
 export type AssigneeRef = { kind: 'user'; user: TgUserLike } | { kind: 'username'; username: string };
@@ -34,8 +35,9 @@ function normalize(text: string): string {
 }
 
 export function parseTaskCommand(msg: IncomingMessage, botUsername: string): ParseResult {
-  const text = msg.text ?? '';
-  const entities = msg.entities ?? [];
+  // сообщение с файлом/фото: команда лежит в подписи, а не в тексте
+  const text = msg.text ?? msg.caption ?? '';
+  const entities = (msg.text !== undefined ? msg.entities : msg.caption_entities) ?? [];
   const command = entities.find((e) => e.type === 'bot_command' && e.offset === 0);
   if (!command) return { ok: false, reason: 'not_command' };
 

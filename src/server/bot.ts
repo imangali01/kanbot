@@ -62,7 +62,7 @@ async function onGroupMessage(msg: Message): Promise<void> {
   }
   if (!msg.from || msg.from.is_bot) return;
 
-  if (commandName(msg.text, env.botUsername) === 'help') {
+  if (commandName(msg.text ?? msg.caption, env.botUsername) === 'help') {
     await replyInGroup(chat.id, msg.message_id, helpText({ isAdmin: env.superadminIds.includes(msg.from.id), inGroup: true }));
     return;
   }

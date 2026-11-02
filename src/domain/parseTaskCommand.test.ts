@@ -68,6 +68,12 @@ describe('parseTaskCommand', () => {
     expect(r.ok && r.text).toBe('подпись к фото');
   });
 
+  it('command in the caption of a document (caption_entities)', () => {
+    const caption = '/task @Yerlick Залить в таблицу stg.tbl указать как metric=план';
+    const r = parseTaskCommand({ message_id: 7, caption, caption_entities: [cmd(), { type: 'mention', offset: 6, length: 8 }] }, BOT);
+    expect(r).toEqual({ ok: true, text: 'Залить в таблицу stg.tbl указать как metric=план', assignees: [{ kind: 'username', username: 'yerlick' }], sourceMessageId: 7 });
+  });
+
   it('empty text without reply', () => {
     expect(parseTaskCommand({ message_id: 1, text: '/task @a1', entities: [cmd(), { type: 'mention', offset: 6, length: 3 }] }, BOT)).toEqual({ ok: false, reason: 'empty_text' });
   });
