@@ -22,6 +22,7 @@ export interface CardView {
   authorName: string;
   assignees: AssigneeView[];
   canEdit: boolean;
+  canMove: boolean;
   canEditText: boolean;
   canDelete: boolean;
   canChangeAuthor: boolean;

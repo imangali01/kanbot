@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canChangeAuthor, canComment, canCreate, canDelete, canEdit, canEditText, canView, computeIsCreator, type Actor } from './permissions';
+import { canChangeAuthor, canComment, canCreate, canDelete, canEdit, canEditText, canMove, canView, computeIsCreator, type Actor } from './permissions';
 
 const actor = (p: Partial<Actor> = {}): Actor => ({ userId: 1, isSuperadmin: false, isMember: true, isCreator: false, ...p });
 const task = { authorId: 100, assigneeIds: [1, 2] };
@@ -35,6 +35,17 @@ describe('permissions', () => {
   });
   it('plain member cannot edit', () => {
     expect(canEdit(actor({ userId: 9 }), task)).toBe(false);
+  });
+  it('move: superadmin, creator role, author or assignee; not plain member or non-member', () => {
+    expect(canMove(actor({ isSuperadmin: true, userId: 9 }), task)).toBe(true);
+    expect(canMove(actor({ isCreator: true, userId: 9 }), task)).toBe(true);
+    expect(canMove(actor({ userId: 100 }), task)).toBe(true);
+    expect(canMove(actor(), task)).toBe(true);
+    expect(canMove(actor({ userId: 9 }), task)).toBe(false);
+    expect(canMove(actor({ isSuperadmin: true, isMember: false }), task)).toBe(false);
+  });
+  it('author cannot edit fields just by being author', () => {
+    expect(canEdit(actor({ userId: 100 }), task)).toBe(false);
   });
   it('text: author or creator, not plain assignee', () => {
     expect(canEditText(actor(), task)).toBe(false);

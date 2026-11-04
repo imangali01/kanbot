@@ -21,6 +21,10 @@ export function canEdit(a: Actor, t: TaskAccessRef): boolean {
   return a.isMember && (a.isCreator || t.assigneeIds.includes(a.userId));
 }
 
+export function canMove(a: Actor, t: TaskAccessRef): boolean {
+  return a.isMember && (a.isSuperadmin || a.isCreator || t.authorId === a.userId || t.assigneeIds.includes(a.userId));
+}
+
 export function canEditText(a: Actor, t: TaskAccessRef): boolean {
   return a.isMember && (a.isCreator || t.authorId === a.userId);
 }

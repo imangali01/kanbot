@@ -7,7 +7,7 @@ import { supergroupMessageLink } from '@/domain/links';
 import { placeCard, topPosition } from '@/domain/ordering';
 import type { AssigneeRef } from '@/domain/parseTaskCommand';
 import { mergeHistory } from '@/domain/events';
-import { canChangeAuthor, canComment, canDelete, canEdit, canEditText, canView, type Actor, type TaskAccessRef } from '@/domain/permissions';
+import { canChangeAuthor, canComment, canDelete, canEdit, canEditText, canMove, canView, type Actor, type TaskAccessRef } from '@/domain/permissions';
 import type { AnalyticsDays, AnalyticsView, AssigneeView, BoardView, CardView, CommentView, HistoryItem, Status, TaskDetail } from '@/domain/types';
 import { commentText, displayName, pingText } from '@/telegram/messages';
 import { deleteMessage, replyInGroup } from '@/telegram/notifier';
@@ -82,6 +82,7 @@ function toCardView(item: CardItem, actor: Actor): CardView {
     authorName: item.authorName,
     assignees: item.assignees,
     canEdit: canEdit(actor, ref),
+    canMove: canMove(actor, ref),
     canEditText: canEditText(actor, ref),
     canDelete: canDelete(actor, ref),
     canChangeAuthor: canChangeAuthor(actor),
@@ -263,7 +264,7 @@ export async function getTaskHistory(taskId: number, userId: number): Promise<Hi
 
 export async function moveTask(taskId: number, userId: number, input: { status: Status; aboveId: number | null }): Promise<BoardView> {
   const ctx = await loadContext(taskId, userId);
-  if (!canEdit(ctx.actor, ctx.ref)) throw new AccessError(403, 'Нет прав двигать эту карточку');
+  if (!canMove(ctx.actor, ctx.ref)) throw new AccessError(403, 'Нет прав двигать эту карточку');
   const prev = ctx.task.status as Status;
   const now = new Date();
   const unblock = input.status === 'done' && ctx.task.blocked;

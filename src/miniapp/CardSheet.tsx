@@ -256,7 +256,7 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
             <span className={s.num}>{ticketId(card.number)}</span>
             <div className={s.seg} role="radiogroup" aria-label="Статус">
               {STATUSES.map((st) => (
-                <button key={st} role="radio" aria-checked={card.status === st} className={card.status === st ? s[`segOn_${st}`] : s.segBtn} disabled={!card.canEdit || busy} onClick={() => card.status !== st && void changeStatus(st)}>
+                <button key={st} role="radio" aria-checked={card.status === st} className={card.status === st ? s[`segOn_${st}`] : s.segBtn} disabled={!card.canMove || busy} onClick={() => card.status !== st && void changeStatus(st)}>
                   <span className={s[`segDot_${st}`]} />{STATUS_TITLES[st]}
                 </button>
               ))}

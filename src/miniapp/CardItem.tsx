@@ -38,7 +38,7 @@ export function CardBody({ card }: { card: CardView }) {
 }
 
 export function CardItem({ card, onOpen }: { card: CardView; onOpen: (id: number) => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id, disabled: !card.canEdit });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id, disabled: !card.canMove });
   return (
     <div
       ref={setNodeRef}
