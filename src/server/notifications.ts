@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { users, type tasks } from '@/db/schema';
-import { buildStartParam, miniAppLink, taskLinkButtons } from '@/domain/links';
+import { buildStartParam, miniAppButton, miniAppLink, taskLinkButtons, type LinkButton } from '@/domain/links';
 import { env } from '@/env';
 import type { Status } from '@/domain/types';
 import { displayName, statusChangedDm, taskAssignedDm, taskCreatedText, taskMovedText, type PersonRef } from '@/telegram/messages';
@@ -19,10 +19,8 @@ export function taskUrl(chatId: number, taskNumber: number): string | undefined 
 const taskButtons = (chat: ChatRow, taskNumber: number, sourceMessageId: number) =>
   taskLinkButtons({ botUsername: env.botUsername, shortName: env.miniAppShortName, chatId: chat.id, chatType: chat.type, taskNumber, sourceMessageId });
 
-export function boardButton(chatId: number, taskNumber?: number): { text: string; url: string } | undefined {
-  const short = env.miniAppShortName;
-  if (!short) return undefined;
-  return { text: 'Открыть доску', url: miniAppLink(env.botUsername, short, buildStartParam(chatId, taskNumber)) };
+export function boardButton(chatId: number, taskNumber?: number): LinkButton | undefined {
+  return miniAppButton(env.botUsername, env.miniAppShortName, chatId, taskNumber);
 }
 
 export async function notifyTaskCreated(p: {
@@ -55,7 +53,7 @@ export async function notifyTaskMoved(p: { task: TaskRow; chat: ChatRow; actorId
   const { task, chat } = p;
   const [actor] = await getDb().select().from(users).where(eq(users.id, p.actorId));
   const html = taskMovedText(task.number, actor ? displayName(actor) : '?', p.from, p.to, taskUrl(chat.id, task.number));
-  if (p.to === 'done') await replyInGroup(chat.id, task.sourceMessageId, html);
+  if (p.to === 'done') await replyInGroup(chat.id, task.sourceMessageId, html, boardButton(chat.id, task.number));
   const recipients = await getUsers([...new Set([task.authorId, ...p.assigneeIds])].filter((id) => id !== p.actorId));
   for (const u of recipients) {
     if (u.startedBot) await sendDm(u.id, html, taskButtons(chat, task.number, task.sourceMessageId));

@@ -44,7 +44,7 @@ export function MiniApp() {
   return (
     <div className={s.app}>
       {!inTelegram ? (
-        <div className={s.center}>Откройте доску из Telegram: нажмите «Открыть доску» под сообщением бота в группе.</div>
+        <div className={s.center}>Откройте доску из Telegram: нажмите «Открыть карточку» под сообщением бота в группе.</div>
       ) : view.kind === 'chats' ? (
         <ChatList onOpen={(chatId) => setView({ kind: 'board', chatId, taskNumber: null })} onAdmin={() => setView({ kind: 'admin' })} />
       ) : view.kind === 'admin' ? (

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildStartParam, miniAppLink, parseStartParam, supergroupMessageLink, taskLinkButtons } from './links';
+import { buildStartParam, miniAppButton, miniAppLink, parseStartParam, supergroupMessageLink, taskLinkButtons } from './links';
 
 describe('links', () => {
   it('start param round-trip with negative chat id', () => {
@@ -17,6 +17,12 @@ describe('links', () => {
   it('message link only for supergroups', () => {
     expect(supergroupMessageLink(-1001234567890, 55)).toBe('https://t.me/c/1234567890/55');
     expect(supergroupMessageLink(-5186674925, 55)).toBeNull();
+  });
+
+  it('miniAppButton: карточка при номере задачи, иначе доска', () => {
+    expect(miniAppButton('bot', 'board', -1, 7)).toEqual({ text: 'Открыть карточку', url: 'https://t.me/bot/board?startapp=c-1_t7' });
+    expect(miniAppButton('bot', 'board', -1)).toEqual({ text: 'Открыть доску', url: 'https://t.me/bot/board?startapp=c-1' });
+    expect(miniAppButton('bot', undefined, -1, 7)).toBeUndefined();
   });
 
   describe('taskLinkButtons', () => {

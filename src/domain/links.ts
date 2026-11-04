@@ -20,6 +20,12 @@ export function supergroupMessageLink(chatId: number, messageId: number): string
 
 export interface LinkButton { text: string; url: string }
 
+/** Кнопка Mini App: с номером задачи открывает карточку, без него — доску. */
+export function miniAppButton(botUsername: string, shortName: string | undefined, chatId: number, taskNumber?: number): LinkButton | undefined {
+  if (!shortName) return undefined;
+  return { text: taskNumber ? 'Открыть карточку' : 'Открыть доску', url: miniAppLink(botUsername, shortName, buildStartParam(chatId, taskNumber)) };
+}
+
 /** Кнопки под личным уведомлением: карточка в Mini App и (где Telegram это позволяет) исходное сообщение в группе. */
 export function taskLinkButtons(p: {
   botUsername: string;
@@ -30,7 +36,8 @@ export function taskLinkButtons(p: {
   sourceMessageId: number;
 }): LinkButton[] {
   const buttons: LinkButton[] = [];
-  if (p.shortName) buttons.push({ text: 'Открыть карточку', url: miniAppLink(p.botUsername, p.shortName, buildStartParam(p.chatId, p.taskNumber)) });
+  const card = miniAppButton(p.botUsername, p.shortName, p.chatId, p.taskNumber);
+  if (card) buttons.push(card);
   const message = p.chatType === 'supergroup' ? supergroupMessageLink(p.chatId, p.sourceMessageId) : null;
   if (message) buttons.push({ text: 'К сообщению', url: message });
   return buttons;
