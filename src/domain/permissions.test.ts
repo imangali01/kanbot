@@ -44,8 +44,10 @@ describe('permissions', () => {
     expect(canMove(actor({ userId: 9 }), task)).toBe(false);
     expect(canMove(actor({ isSuperadmin: true, isMember: false }), task)).toBe(false);
   });
-  it('author cannot edit fields just by being author', () => {
-    expect(canEdit(actor({ userId: 100 }), task)).toBe(false);
+  it('edit: superadmin, author and creator role can edit fields and assignees', () => {
+    expect(canEdit(actor({ userId: 100 }), task)).toBe(true);
+    expect(canEdit(actor({ isSuperadmin: true, userId: 9 }), task)).toBe(true);
+    expect(canEdit(actor({ userId: 9 }), task)).toBe(false);
   });
   it('text: author or creator, not plain assignee', () => {
     expect(canEditText(actor(), task)).toBe(false);
