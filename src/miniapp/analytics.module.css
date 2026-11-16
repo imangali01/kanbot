@@ -174,3 +174,25 @@
   .stat:nth-child(n + 3) { border-top: 1px solid var(--line); }
   .facts { grid-template-columns: 1fr 1fr; }
 }
+
+/* дашборд: плитки и карточки */
+.root { max-width: 720px; }
+.summary { grid-template-columns: repeat(2, 1fr); gap: 8px; border-block: 0; margin-top: 14px; }
+.stat, .stat:first-child, .stat:nth-child(3), .stat:nth-child(n + 3) { padding: 12px 14px; border: 0; border-radius: 16px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); }
+.statValue { font-size: 26px; }
+.hero, .section { margin-top: 8px; padding: 14px; border: 0; border-radius: 16px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); }
+.list { margin: 8px -8px -4px; }
+@media (min-width: 560px) {
+  .summary { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* графики: линии поверх градиентных слоёв */
+.lineDone, .lineProgress, .lineTodo { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.lineDone { stroke: var(--st-done); }
+.lineProgress { stroke: var(--st-progress); }
+.lineTodo { stroke: var(--st-todo); }
+.chart { padding: 8px 4px 0; border-radius: 12px; background: var(--paper); box-shadow: inset 0 0 0 1px var(--line); }
+.grid { stroke-dasharray: 2 4; }
+.cursor { stroke-dasharray: 3 3; stroke: var(--ink-3); }
+.cursorDot { stroke-width: 2; }
+.layerName, .layerNameDark { fill: #fff; paint-order: stroke; stroke: rgba(0, 0, 0, 0.35); stroke-width: 2.5px; stroke-linejoin: round; }
