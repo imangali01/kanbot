@@ -36,6 +36,13 @@
       "when": 1794813121747,
       "tag": "0004_regular_robbie_robertson",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794813739432,
+      "tag": "0005_bizarre_shinko_yamashiro",
+      "breakpoints": true
     }
   ]
 }

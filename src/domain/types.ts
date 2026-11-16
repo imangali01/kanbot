@@ -52,7 +52,7 @@ export interface AttachmentView {
   mime: string | null;
   size: number | null;
 }
-export interface TaskDetail { card: CardView; comments: CommentView[]; attachments: AttachmentView[] }
+export interface TaskDetail { card: CardView; description: string | null; comments: CommentView[]; attachments: AttachmentView[] }
 export interface ChatSummary { id: number; title: string }
 
 export type AnalyticsDays = 7 | 30 | 90;

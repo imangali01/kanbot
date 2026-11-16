@@ -8,6 +8,7 @@ export interface EventPayloads {
   stars: { from: number; to: number };
   deadline: { from: string; to: string };
   text: { from: string; to: string };
+  description: { action: 'added' | 'changed' | 'removed' };
   blocked: { reason: string };
   unblocked: { reason: string | null };
 }
@@ -36,6 +37,8 @@ export function formatEvent(e: TaskEvent): string {
       return `изменил срок: ${date(e.payload.from)} → ${date(e.payload.to)}`;
     case 'text':
       return 'изменил текст задачи';
+    case 'description':
+      return { added: 'добавил описание', changed: 'изменил описание', removed: 'удалил описание' }[e.payload.action];
     case 'blocked':
       return `заблокировал: ${e.payload.reason}`;
     case 'unblocked':

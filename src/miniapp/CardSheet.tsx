@@ -7,7 +7,7 @@ import { STATUSES, STATUS_TITLES, type BoardView, type HistoryItem, type Status,
 import { api, errorText } from './api';
 import { Attachments } from './Attachments';
 import { Avatar } from './Avatar';
-import { IconCalendar, IconCheck, IconChevronDown, IconHistory, IconLock, IconMore, IconReply, IconSend, IconStar, IconTrash, IconUser, IconUsers } from './icons';
+import { IconCalendar, IconCheck, IconChevronDown, IconHistory, IconLock, IconMore, IconPlus, IconReply, IconSend, IconStar, IconTrash, IconUser, IconUsers } from './icons';
 import { Sheet } from './Sheet';
 import { confirmDialog, webApp } from './telegram';
 import s from './miniapp.module.css';
@@ -19,6 +19,8 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
   const [detail, setDetail] = useState<TaskDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [text, setText] = useState('');
+  const [desc, setDesc] = useState('');
+  const [descOpen, setDescOpen] = useState(false);
   const [comment, setComment] = useState('');
   const [caret, setCaret] = useState(0);
   const [mentionIdx, setMentionIdx] = useState(0);
@@ -32,6 +34,7 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
+  const descRef = useRef<HTMLTextAreaElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const authorRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -62,7 +65,7 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
 
   useEffect(() => {
     api<TaskDetail>(`/api/app/tasks/${taskId}`)
-      .then((d) => { setDetail(d); setText(d.card.text); })
+      .then((d) => { setDetail(d); setText(d.card.text); setDesc(d.description ?? ''); })
       .catch((e) => setError(errorText(e)));
   }, [taskId]);
 
@@ -73,6 +76,13 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
     el.style.height = `${el.scrollHeight}px`;
   }, [text, detail]);
 
+  useEffect(() => {
+    const el = descRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [desc, descOpen, detail]);
+
   async function run(path: string, method: string, body?: unknown) {
     setBusy(true);
     setError(null);
@@ -80,6 +90,7 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
       const d = await api<TaskDetail>(path, { method, body });
       setDetail(d);
       setText(d.card.text);
+      setDesc(d.description ?? '');
       onChanged();
     } catch (e) {
       setError(errorText(e));
@@ -286,6 +297,32 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
             />
           ) : (
             <p className={s.textStatic}>{card.text}</p>
+          )}
+
+          {(detail.description || descOpen) && (
+            card.canEditText ? (
+              <textarea
+                ref={descRef}
+                rows={2}
+                autoFocus={descOpen && !detail.description}
+                className={s.descField}
+                value={desc}
+                maxLength={4000}
+                placeholder="Описание задачи"
+                aria-label="Описание задачи"
+                onChange={(e) => setDesc(e.target.value)}
+                onBlur={() => {
+                  const next = desc.trim();
+                  if (next !== (detail.description ?? '')) void patch({ description: next });
+                  if (!next) setDescOpen(false);
+                }}
+              />
+            ) : (
+              <p className={s.descStatic}>{detail.description}</p>
+            )
+          )}
+          {card.canEditText && !detail.description && !descOpen && (
+            <button className={s.chipBtn} onClick={() => setDescOpen(true)}><IconPlus size={13} />Добавить описание</button>
           )}
 
           {card.blocked && (

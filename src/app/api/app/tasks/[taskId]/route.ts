@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 
 const patchSchema = z.object({
   text: z.string().trim().min(1).max(4000).optional(),
+  description: z.string().max(4000).optional(),
   stars: z.number().int().min(1).max(5).optional(),
   deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   authorId: z.number().int().positive().optional(),

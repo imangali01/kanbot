@@ -44,6 +44,8 @@ export const tasks = pgTable('tasks', {
   chatId: tg('chat_id').notNull().references(() => chats.id, chatRef),
   number: integer('number').notNull(),
   text: text('text').notNull(),
+  /** Необязательное описание: заводится из карточки, у большинства задач его нет. */
+  description: text('description'),
   status: text('status').notNull().default('todo'),
   position: doublePrecision('position').notNull().default(0),
   stars: smallint('stars').notNull().default(1),

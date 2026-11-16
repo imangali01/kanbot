@@ -20,7 +20,7 @@ import { notifyAuthorStatus, notifyTaskMoved, taskUrl } from './notifications';
 import { findUserByUsername, upsertUser } from './users';
 
 export type TaskRow = typeof tasks.$inferSelect;
-export interface TaskPatch { text?: string; stars?: number; deadline?: string; assigneeKeys?: string[]; authorId?: number }
+export interface TaskPatch { text?: string; description?: string; stars?: number; deadline?: string; assigneeKeys?: string[]; authorId?: number }
 type AssigneeRow = { userId: number | null; username: string | null };
 interface CardItem { row: TaskRow; assignees: AssigneeView[]; authorName: string }
 
@@ -274,7 +274,7 @@ export async function getAttachmentForDownload(taskId: number, attachmentId: num
 export async function getTaskDetail(taskId: number, userId: number): Promise<TaskDetail> {
   const ctx = await loadContext(taskId, userId);
   const [comments, attachments] = await Promise.all([loadComments(taskId), loadAttachments(taskId)]);
-  return { card: toCardView(ctx.item, ctx.actor), comments, attachments };
+  return { card: toCardView(ctx.item, ctx.actor), description: ctx.task.description, comments, attachments };
 }
 
 export async function getTaskHistory(taskId: number, userId: number): Promise<HistoryItem[]> {
@@ -333,6 +333,7 @@ export async function moveTask(taskId: number, userId: number, input: { status: 
 export async function updateTask(taskId: number, userId: number, patch: TaskPatch): Promise<TaskDetail> {
   const ctx = await loadContext(taskId, userId);
   if (patch.text !== undefined && !canEditText(ctx.actor, ctx.ref)) throw new AccessError(403, 'Нет прав менять текст');
+  if (patch.description !== undefined && !canEditText(ctx.actor, ctx.ref)) throw new AccessError(403, 'Нет прав менять описание');
   const touchesFields = patch.stars !== undefined || patch.deadline !== undefined || patch.assigneeKeys !== undefined;
   if (touchesFields && !canEdit(ctx.actor, ctx.ref)) throw new AccessError(403, 'Нет прав редактировать карточку');
 
@@ -353,6 +354,8 @@ export async function updateTask(taskId: number, userId: number, patch: TaskPatc
     (assignees.length !== oldKeys.size || assignees.some((a) => !oldKeys.has(a.userId !== null ? `u:${a.userId}` : `n:${a.username}`)));
   const t = ctx.task;
   const textChanged = patch.text !== undefined && patch.text !== t.text;
+  const newDescription = patch.description === undefined ? undefined : patch.description.trim() || null;
+  const descriptionChanged = newDescription !== undefined && newDescription !== t.description;
   const starsChanged = patch.stars !== undefined && patch.stars !== t.stars;
   const deadlineChanged = patch.deadline !== undefined && patch.deadline !== t.deadline;
 
@@ -362,6 +365,7 @@ export async function updateTask(taskId: number, userId: number, patch: TaskPatc
       .set({
         updatedAt: new Date(),
         ...(patch.text !== undefined ? { text: patch.text } : {}),
+        ...(newDescription !== undefined ? { description: newDescription } : {}),
         ...(patch.stars !== undefined ? { stars: patch.stars } : {}),
         ...(patch.deadline !== undefined ? { deadline: patch.deadline } : {}),
         ...(newAuthorId !== null ? { authorId: newAuthorId } : {}),
@@ -373,6 +377,7 @@ export async function updateTask(taskId: number, userId: number, patch: TaskPatc
     }
     const ev = { taskId, actorId: userId };
     if (textChanged) await recordEvent(tx, { ...ev, type: 'text', payload: { from: t.text, to: patch.text! } });
+    if (descriptionChanged) await recordEvent(tx, { ...ev, type: 'description', payload: { action: newDescription === null ? 'removed' : t.description === null ? 'added' : 'changed' } });
     if (starsChanged) await recordEvent(tx, { ...ev, type: 'stars', payload: { from: t.stars, to: patch.stars! } });
     if (deadlineChanged) await recordEvent(tx, { ...ev, type: 'deadline', payload: { from: t.deadline, to: patch.deadline! } });
     if (assigneesChanged) await recordEvent(tx, { ...ev, type: 'assignees', payload: { from: ctx.item.assignees.map((a) => a.name), to: newNames } });
