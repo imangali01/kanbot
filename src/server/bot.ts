@@ -73,6 +73,17 @@ async function onGroupMessage(msg: Message): Promise<void> {
     if (parsed.reason === 'empty_text') await replyInGroup(chat.id, msg.message_id, USAGE_TEXT);
     return;
   }
+  // TEMP-DIAG: структура сообщения (только имена полей, без текста) — убрать после выяснения причины
+  const m = msg as unknown as Record<string, unknown>;
+  const r = m.reply_to_message as Record<string, unknown> | undefined;
+  console.log('task-diag', JSON.stringify({
+    keys: Object.keys(m),
+    replyKeys: r ? Object.keys(r) : null,
+    external: Object.keys(m).filter((k) => /reply|quote|thread|topic/i.test(k)),
+    sourceMessageId: parsed.sourceMessageId,
+    messageId: msg.message_id,
+    chatType: msg.chat.type,
+  }));
   const actor = await getActor(chat, msg.from.id);
   if (!canCreate(actor)) {
     await replyInGroup(chat.id, msg.message_id, NO_RIGHTS_TEXT);
