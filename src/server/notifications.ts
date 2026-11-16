@@ -6,11 +6,18 @@ import { buildStartParam, miniAppButton, miniAppLink, taskLinkButtons, type Link
 import { env } from '@/env';
 import type { Status } from '@/domain/types';
 import { displayName, taskBlockDm, taskBlockText, taskCreatedDm, taskCreatedText, taskMovedDm, taskMovedText, type PersonRef } from '@/telegram/messages';
-import { replyInGroup, sendDm } from '@/telegram/notifier';
+import { replyInGroup, sendDm, sendWidgetDm } from '@/telegram/notifier';
+import { buildWidget, type WidgetCard } from '@/telegram/widgetHtml';
 import type { ChatRow } from './chats';
 import { getUsers } from './users';
 
 type TaskRow = typeof tasks.$inferSelect;
+
+/** Личное уведомление: HTML-виджет с кнопками под ним; если Telegram его не принял — тот же смысл обычным текстом. */
+async function sendTaskDm(userId: number, card: WidgetCard, fallbackHtml: string, buttons: LinkButton[]): Promise<void> {
+  const result = await sendWidgetDm(userId, buildWidget(card), buttons);
+  if (result === 'failed') await sendDm(userId, fallbackHtml, buttons);
+}
 
 export function taskUrl(chatId: number, taskNumber: number): string | undefined {
   const short = env.miniAppShortName;
@@ -43,10 +50,11 @@ export async function notifyTaskCreated(p: {
 
   await replyInGroup(p.chat.id, p.sourceMessageId, taskCreatedText(p.taskNumber, people), boardButton(p.chat.id, p.taskNumber));
   const [author] = await getUsers([p.authorId]);
+  const card: WidgetCard = { board: p.chat.title, number: p.taskNumber, kind: 'created', text: p.text, deadline: p.deadline, who: author ? displayName(author) : '?', whoLabel: 'Поставил' };
   const dm = taskCreatedDm({ board: p.chat.title, number: p.taskNumber, text: p.text, deadline: p.deadline, authorName: author ? displayName(author) : '?', url: taskUrl(p.chat.id, p.taskNumber) });
   for (const u of dmEnabled(p.chat.dmOff, 'created') ? known : []) {
     if (u.startedBot && u.id !== p.authorId) {
-      await sendDm(u.id, dm, taskButtons(p.chat, p.taskNumber, p.sourceMessageId));
+      await sendTaskDm(u.id, card, dm, taskButtons(p.chat, p.taskNumber, p.sourceMessageId));
     }
   }
 }
@@ -58,10 +66,11 @@ export async function notifyTaskMoved(p: { task: TaskRow; chat: ChatRow; actorId
   const html = taskMovedText(task.number, actor ? displayName(actor) : '?', p.from, p.to, taskUrl(chat.id, task.number));
   if (p.to === 'done') await replyInGroup(chat.id, task.sourceMessageId, html, boardButton(chat.id, task.number));
   const dm = taskMovedDm({ board: chat.title, number: task.number, text: task.text, deadline: task.deadline, actorName: actor ? displayName(actor) : '?', from: p.from, to: p.to, url: taskUrl(chat.id, task.number) });
+  const card: WidgetCard = { board: chat.title, number: task.number, kind: p.to === 'done' ? 'done' : 'moved', text: task.text, deadline: task.deadline, from: p.from, to: p.to, who: actor ? displayName(actor) : '?', whoLabel: 'Кто' };
   if (!dmEnabled(chat.dmOff, p.to === 'done' ? 'done' : 'moved')) return;
   const recipients = await getUsers([...new Set([task.authorId, ...p.assigneeIds])].filter((id) => id !== p.actorId));
   for (const u of recipients) {
-    if (u.startedBot) await sendDm(u.id, dm, taskButtons(chat, task.number, task.sourceMessageId));
+    if (u.startedBot) await sendTaskDm(u.id, card, dm, taskButtons(chat, task.number, task.sourceMessageId));
   }
 }
 
@@ -72,9 +81,10 @@ export async function notifyTaskBlock(p: { task: TaskRow; chat: ChatRow; actorId
   const html = taskBlockText(task.number, actor ? displayName(actor) : '?', p.blocked, p.reason, taskUrl(chat.id, task.number));
   await replyInGroup(chat.id, task.sourceMessageId, html, boardButton(chat.id, task.number));
   const dm = taskBlockDm({ board: chat.title, number: task.number, text: task.text, actorName: actor ? displayName(actor) : '?', blocked: p.blocked, reason: p.reason, url: taskUrl(chat.id, task.number) });
+  const card: WidgetCard = { board: chat.title, number: task.number, kind: p.blocked ? 'blocked' : 'unblocked', text: task.text, who: actor ? displayName(actor) : '?', whoLabel: 'Кто', reason: p.reason };
   if (!dmEnabled(chat.dmOff, 'blocked')) return;
   const recipients = await getUsers([...new Set([task.authorId, ...p.assigneeIds])].filter((id) => id !== p.actorId));
   for (const u of recipients) {
-    if (u.startedBot) await sendDm(u.id, dm, taskButtons(chat, task.number, task.sourceMessageId));
+    if (u.startedBot) await sendTaskDm(u.id, card, dm, taskButtons(chat, task.number, task.sourceMessageId));
   }
 }

@@ -29,6 +29,39 @@ export function sendDm(userId: number, html: string, buttons: { text: string; ur
   );
 }
 
+export type WidgetResult = 'sent' | 'blocked' | 'failed';
+
+/**
+ * HTML-виджет в личку (Bot API sendWidget; в grammY этого метода пока нет — зовём API напрямую).
+ * 'blocked' — человек остановил бота (дальше не пытаемся), 'failed' — любая другая ошибка: вызывающий отправит обычный текст.
+ */
+export async function sendWidgetDm(userId: number, w: { html: string; height: number; caption: string }, buttons: { text: string; url: string }[] = []): Promise<WidgetResult> {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${env.botToken}/sendWidget`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: userId,
+        html: w.html,
+        height: w.height,
+        caption: w.caption,
+        reply_markup: buttons.length ? { inline_keyboard: [buttons.map((b) => ({ text: b.text, url: b.url }))] } : undefined,
+      }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error_code?: number; description?: string };
+    if (data.ok) return 'sent';
+    if (data.error_code === 403) {
+      await setStartedBot(userId, false);
+      return 'blocked';
+    }
+    console.error('sendWidget failed:', data.error_code, data.description);
+    return 'failed';
+  } catch (e) {
+    console.error('sendWidget failed:', e);
+    return 'failed';
+  }
+}
+
 export function sendInGroup(chatId: number, html: string) {
   return safe(() => tg().sendMessage(chatId, html, { parse_mode: 'HTML', link_preview_options: { is_disabled: true } }));
 }
