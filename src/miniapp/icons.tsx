@@ -70,6 +70,9 @@ export const IconSearch = (p: P) => (
 export const IconHistory = (p: P) => (
   <Icon {...p}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></Icon>
 );
+export const IconNote = (p: P) => (
+  <Icon {...p}><path d="M5 7h14M5 12h14M5 17h9" /></Icon>
+);
 export const IconPlus = (p: P) => (
   <Icon {...p}><path d="M12 5v14M5 12h14" /></Icon>
 );

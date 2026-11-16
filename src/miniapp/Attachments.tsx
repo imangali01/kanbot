@@ -104,8 +104,7 @@ export function Attachments({ taskId, items }: { taskId: number; items: Attachme
   }
 
   return (
-    <>
-      <h3 className={s.sectionTitle}>Вложения</h3>
+    <div className={s.attach}>
       {images.length > 0 && (
         <div className={s.thumbs}>
           {images.map((a) => <Thumb key={a.id} taskId={taskId} a={a} onOpen={(att, url) => setViewer({ a: att, url })} />)}
@@ -147,6 +146,6 @@ export function Attachments({ taskId, items }: { taskId: number; items: Attachme
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

@@ -7,7 +7,7 @@ import { STATUSES, STATUS_TITLES, type BoardView, type HistoryItem, type Status,
 import { api, errorText } from './api';
 import { Attachments } from './Attachments';
 import { Avatar } from './Avatar';
-import { IconCalendar, IconCheck, IconChevronDown, IconHistory, IconLock, IconMore, IconPlus, IconReply, IconSend, IconStar, IconTrash, IconUser, IconUsers } from './icons';
+import { IconCalendar, IconCheck, IconChevronDown, IconHistory, IconLock, IconMore, IconNote, IconReply, IconSend, IconStar, IconTrash, IconUser, IconUsers } from './icons';
 import { Sheet } from './Sheet';
 import { confirmDialog, webApp } from './telegram';
 import s from './miniapp.module.css';
@@ -273,12 +273,15 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
                 </button>
               ))}
             </div>
-            {card.canDelete && (
+            {(card.canDelete || (card.canEditText && !detail.description)) && (
               <div className={s.menuWrap} ref={menuRef}>
                 <button className={s.iconBtn} aria-label="Ещё" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><IconMore size={20} /></button>
                 {menuOpen && (
                   <div className={s.menu} role="menu">
-                    <button className={s.menuItemDanger} role="menuitem" onClick={() => void remove()}><IconTrash size={18} />Удалить задачу</button>
+                    {card.canEditText && !detail.description && !descOpen && (
+                      <button className={s.menuItem} role="menuitem" onClick={() => { setMenuOpen(false); setDescOpen(true); }}><IconNote size={18} />Добавить описание</button>
+                    )}
+                    {card.canDelete && <button className={s.menuItemDanger} role="menuitem" onClick={() => void remove()}><IconTrash size={18} />Удалить задачу</button>}
                   </div>
                 )}
               </div>
@@ -303,7 +306,7 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
             card.canEditText ? (
               <textarea
                 ref={descRef}
-                rows={2}
+                rows={1}
                 autoFocus={descOpen && !detail.description}
                 className={s.descField}
                 value={desc}
@@ -321,10 +324,6 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
               <p className={s.descStatic}>{detail.description}</p>
             )
           )}
-          {card.canEditText && !detail.description && !descOpen && (
-            <button className={s.chipBtn} onClick={() => setDescOpen(true)}><IconPlus size={13} />Добавить описание</button>
-          )}
-
           {card.blocked && (
             <div className={s.banner}>
               {card.canEdit ? (
@@ -335,6 +334,8 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
               <div className={s.bannerBody}>{card.blockedReason}</div>
             </div>
           )}
+
+          <Attachments taskId={taskId} items={detail.attachments} />
 
           <div className={s.props}>
             <div className={s.prop}>
@@ -457,8 +458,6 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
               <button className={s.btnPrimary} style={{ flex: 'none' }} disabled={!blockReason.trim() || busy} onClick={async () => { await run(`/api/app/tasks/${taskId}/block`, 'POST', { reason: blockReason.trim() }); setBlockReason(null); }}>Готово</button>
             </div>
           )}
-
-          <Attachments taskId={taskId} items={detail.attachments} />
 
           <h3 className={s.sectionTitle}>Комментарии</h3>
           <div className={s.comments}>

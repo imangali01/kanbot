@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useState } from 'react';
 import type { ChatSummary } from '@/domain/types';
 import { api, errorText } from './api';
-import { avatarHue } from './avatarUtils';
+import { GroupAvatar } from './GroupAvatar';
 import { IconChevron, IconShield } from './icons';
 import s from './miniapp.module.css';
 
@@ -40,7 +40,7 @@ export function ChatList({ onOpen, onAdmin }: { onOpen: (chatId: number) => void
             const title = c.title || 'Без названия';
             return (
               <button key={c.id} className={s.listItem} onClick={() => onOpen(c.id)}>
-                <span className={s.tile} style={{ '--h': avatarHue(title) } as CSSProperties}>{Array.from(title)[0].toUpperCase()}</span>
+                <GroupAvatar chatId={c.id} title={title} />
                 <span className={s.listTitle}>{title}</span>
                 <span className={s.listChevron}><IconChevron size={18} /></span>
               </button>
