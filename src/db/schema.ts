@@ -12,6 +12,8 @@ export const chats = pgTable('chats', {
   creatorsMode: text('creators_mode').notNull().default('all'),
   nextTaskNumber: integer('next_task_number').notNull().default(1),
   lastPinMessageId: tg('last_pin_message_id'),
+  /** Админ ли бот в группе: null — ещё не проверяли (проверим при первой команде). Без админа бот не работает. */
+  botIsAdmin: boolean('bot_is_admin'),
   createdAt: ts('created_at').notNull().defaultNow(),
 });
 
@@ -50,10 +52,12 @@ export const tasks = pgTable('tasks', {
   blockedReason: text('blocked_reason'),
   authorId: tg('author_id').notNull().references(() => users.id),
   sourceMessageId: tg('source_message_id').notNull(),
+  /** Альбом Telegram, из которого взяты вложения: файлы, пришедшие позже, дописываются в тикет. */
+  mediaGroupId: text('media_group_id'),
   createdAt: ts('created_at').notNull().defaultNow(),
   updatedAt: ts('updated_at').notNull().defaultNow(),
   doneAt: ts('done_at'),
-}, (t) => [unique('tasks_chat_number_uq').on(t.chatId, t.number), index('tasks_chat_idx').on(t.chatId)]);
+}, (t) => [unique('tasks_chat_number_uq').on(t.chatId, t.number), index('tasks_chat_idx').on(t.chatId), index('tasks_media_group_idx').on(t.chatId, t.mediaGroupId)]);
 
 export const taskAssignees = pgTable('task_assignees', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
@@ -82,7 +86,22 @@ export const taskAttachments = pgTable('task_attachments', {
   size: bigint('size', { mode: 'number' }),
 }, (t) => [index('task_attachments_task_idx').on(t.taskId)]);
 
-export const taskEvents =pgTable('task_events', {
+/** Буфер вложений альбомов: файлы одного альбома приходят отдельными сообщениями, команда /task — только в одном из них. */
+export const chatMedia = pgTable('chat_media', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  chatId: tg('chat_id').notNull().references(() => chats.id, chatRef),
+  messageId: tg('message_id').notNull(),
+  mediaGroupId: text('media_group_id').notNull(),
+  kind: text('kind').notNull(),
+  fileId: text('file_id').notNull(),
+  fileUniqueId: text('file_unique_id').notNull(),
+  name: text('name'),
+  mime: text('mime'),
+  size: bigint('size', { mode: 'number' }),
+  createdAt: ts('created_at').notNull().defaultNow(),
+}, (t) => [unique('chat_media_group_file_uq').on(t.chatId, t.mediaGroupId, t.fileUniqueId), index('chat_media_created_idx').on(t.createdAt)]);
+
+export const taskEvents = pgTable('task_events', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   taskId: bigint('task_id', { mode: 'number' }).notNull().references(() => tasks.id, { onDelete: 'cascade' }),
   actorId: tg('actor_id').references(() => users.id, { onDelete: 'set null' }),

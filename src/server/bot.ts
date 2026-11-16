@@ -1,12 +1,13 @@
 import type { ChatMemberUpdated, Message, Update } from 'grammy/types';
-import { extractAttachments, type MessageWithMedia } from '@/domain/attachments';
+import { extractAttachments, mediaGroupIds, type MessageWithMedia } from '@/domain/attachments';
 import { commandName } from '@/domain/commands';
 import { parseTaskCommand, type IncomingMessage } from '@/domain/parseTaskCommand';
 import { canCreate } from '@/domain/permissions';
 import { env } from '@/env';
-import { NO_RIGHTS_TEXT, START_TEXT, USAGE_TEXT, helpText } from '@/telegram/messages';
-import { replyInGroup, sendDm } from '@/telegram/notifier';
-import { getActor, getChat, migrateChat, setChatStatus, touchMember, upsertPendingChat } from './chats';
+import { ADMIN_REQUEST_TEXT, ADMIN_THANKS_TEXT, NO_RIGHTS_TEXT, START_TEXT, USAGE_TEXT, helpText } from '@/telegram/messages';
+import { replyInGroup, sendDm, sendInGroup } from '@/telegram/notifier';
+import { botIsAdmin, getActor, getChat, migrateChat, setBotAdmin, setChatStatus, touchMember, upsertPendingChat } from './chats';
+import { recordGroupMedia } from './media';
 import { notifyTaskCreated } from './notifications';
 import { createTask } from './tasks';
 import { setStartedBot, upsertUser } from './users';
@@ -18,6 +19,11 @@ async function onMyChatMember(u: ChatMemberUpdated): Promise<void> {
   const status = u.new_chat_member.status;
   if (status === 'member' || status === 'administrator') {
     await upsertPendingChat({ id: u.chat.id, title: 'title' in u.chat ? u.chat.title : undefined, type: u.chat.type });
+    const isAdmin = status === 'administrator';
+    await setBotAdmin(u.chat.id, isAdmin);
+    // бот без админа не видит сообщений и не работает: просим сделать админом (при добавлении и при снятии прав)
+    if (!isAdmin) await sendInGroup(u.chat.id, ADMIN_REQUEST_TEXT);
+    else if (u.old_chat_member.status === 'member') await sendInGroup(u.chat.id, ADMIN_THANKS_TEXT);
   } else if (status === 'left' || status === 'kicked') {
     await setChatStatus(u.chat.id, 'disabled');
   }
@@ -63,6 +69,17 @@ async function onGroupMessage(msg: Message): Promise<void> {
   }
   if (!msg.from || msg.from.is_bot) return;
 
+  // без прав администратора бот не работает: на свои команды отвечает просьбой, остальное игнорирует
+  const cmd = commandName(msg.text ?? msg.caption, env.botUsername);
+  const addressed = cmd === 'task' || cmd === 'help';
+  if (!(await botIsAdmin(chat, addressed))) {
+    if (addressed) await replyInGroup(chat.id, msg.message_id, ADMIN_REQUEST_TEXT);
+    return;
+  }
+
+  // файлы альбома приходят отдельными сообщениями — запоминаем и дописываем в уже созданный тикет
+  await recordGroupMedia(chat.id, msg as unknown as MessageWithMedia & { message_id: number });
+
   if (commandName(msg.text ?? msg.caption, env.botUsername) === 'help') {
     await replyInGroup(chat.id, msg.message_id, helpText({ isAdmin: env.superadminIds.includes(msg.from.id), inGroup: true }));
     return;
@@ -96,6 +113,7 @@ async function onGroupMessage(msg: Message): Promise<void> {
     assignees: parsed.assignees,
     sourceMessageId: parsed.sourceMessageId,
     attachments: extractAttachments(msg as unknown as MessageWithMedia),
+    mediaGroupIds: mediaGroupIds(msg as unknown as MessageWithMedia),
     now: new Date(),
   });
   await notifyTaskCreated({

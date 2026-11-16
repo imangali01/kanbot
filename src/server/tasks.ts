@@ -1,7 +1,7 @@
 import { and, asc, eq, gte, inArray, ne, sql } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { chats, comments, taskAssignees, taskAttachments, tasks, users } from '@/db/schema';
-import type { AttachmentInput } from '@/domain/attachments';
+import { mergeAttachments, type AttachmentInput } from '@/domain/attachments';
 import { analyticsSince, buildAnalytics, type ClosedTask } from '@/domain/analytics';
 import { tomorrow } from '@/domain/dates';
 import { supergroupMessageLink } from '@/domain/links';
@@ -15,6 +15,7 @@ import { deleteMessage, replyInGroup } from '@/telegram/notifier';
 import { getActor, getChat, listMembers, type ChatRow } from './chats';
 import { AccessError } from './errors';
 import { loadEvents, recordEvent } from './events';
+import { loadGroupAttachments, lockMediaGroups } from './media';
 import { notifyAuthorStatus, notifyTaskMoved, taskUrl } from './notifications';
 import { findUserByUsername, upsertUser } from './users';
 
@@ -144,6 +145,8 @@ export async function createTask(input: {
   assignees: AssigneeRef[];
   sourceMessageId: number;
   attachments?: AttachmentInput[];
+  /** Альбомы Telegram (ответ + само сообщение): их файлы собираются в тикет. */
+  mediaGroupIds?: string[];
   now: Date;
 }): Promise<{ id: number; number: number; deadline: string; assignees: AssigneeRow[] }> {
   const assignees = await resolveRefs(input.assignees);
@@ -151,7 +154,9 @@ export async function createTask(input: {
   const db = getDb();
   const [author] = await db.select().from(users).where(eq(users.id, input.authorId));
   const assigneeNames = await rowNames(assignees);
+  const groupIds = input.mediaGroupIds ?? [];
   const created = await db.transaction(async (tx) => {
+    await lockMediaGroups(tx, input.chat.id, groupIds);
     const [counter] = await tx
       .update(chats)
       .set({ nextTaskNumber: sql`${chats.nextTaskNumber} + 1` })
@@ -174,12 +179,14 @@ export async function createTask(input: {
         deadline,
         authorId: input.authorId,
         sourceMessageId: input.sourceMessageId,
+        mediaGroupId: groupIds[0] ?? null,
       })
       .returning({ id: tasks.id });
     if (assignees.length) await tx.insert(taskAssignees).values(assignees.map((a) => ({ taskId: task.id, ...a })));
-    if (input.attachments?.length) {
+    const files = mergeAttachments(input.attachments ?? [], await loadGroupAttachments(tx, input.chat.id, groupIds));
+    if (files.length) {
       await tx.insert(taskAttachments).values(
-        input.attachments.map((a) => ({ taskId: task.id, kind: a.kind, fileId: a.fileId, fileUniqueId: a.uniqueId, name: a.name, mime: a.mime, size: a.size })),
+        files.map((a) => ({ taskId: task.id, kind: a.kind, fileId: a.fileId, fileUniqueId: a.uniqueId, name: a.name, mime: a.mime, size: a.size })),
       );
     }
     await recordEvent(tx, {

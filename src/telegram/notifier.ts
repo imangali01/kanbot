@@ -29,6 +29,10 @@ export function sendDm(userId: number, html: string, buttons: { text: string; ur
   );
 }
 
+export function sendInGroup(chatId: number, html: string) {
+  return safe(() => tg().sendMessage(chatId, html, { parse_mode: 'HTML', link_preview_options: { is_disabled: true } }));
+}
+
 export function replyInGroup(chatId: number, replyTo: number, html: string, button?: { text: string; url: string }) {
   return safe(() =>
     tg().sendMessage(chatId, html, {

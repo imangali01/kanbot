@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractAttachments, isImage } from './attachments';
+import { extractAttachments, isImage, mediaGroupIds, mergeAttachments } from './attachments';
 
 const size = (id: string, w: number, h: number) => ({ file_id: id, file_unique_id: `u-${id}`, width: w, height: h });
 
@@ -38,5 +38,18 @@ describe('isImage', () => {
     expect(isImage({ kind: 'document', mime: 'image/png' })).toBe(true);
     expect(isImage({ kind: 'document', mime: 'image/svg+xml' })).toBe(false);
     expect(isImage({ kind: 'document', mime: 'application/pdf' })).toBe(false);
+  });
+});
+
+describe('albums', () => {
+  it('mediaGroupIds: reply album first, then own, without repeats', () => {
+    expect(mediaGroupIds({})).toEqual([]);
+    expect(mediaGroupIds({ media_group_id: 'b', reply_to_message: { media_group_id: 'a' } })).toEqual(['a', 'b']);
+    expect(mediaGroupIds({ media_group_id: 'a', reply_to_message: { media_group_id: 'a' } })).toEqual(['a']);
+  });
+
+  it('mergeAttachments keeps order and drops repeats by uniqueId', () => {
+    const f = (u: string) => ({ kind: 'document' as const, fileId: u, uniqueId: u, name: null, mime: null, size: null });
+    expect(mergeAttachments([f('a'), f('b')], [f('b'), f('c')]).map((x) => x.uniqueId)).toEqual(['a', 'b', 'c']);
   });
 });

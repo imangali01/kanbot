@@ -27,6 +27,31 @@ export async function setChatStatus(id: number, status: 'pending' | 'enabled' | 
   await getDb().update(chats).set({ status }).where(eq(chats.id, id));
 }
 
+export async function setBotAdmin(id: number, isAdmin: boolean): Promise<void> {
+  await getDb().update(chats).set({ botIsAdmin: isAdmin }).where(eq(chats.id, id));
+}
+
+let botId: number | null = null;
+
+/**
+ * Админ ли бот в группе. Известный «да» принимаем сразу; «нет» и «не знаем» перепроверяем у Telegram
+ * (`recheck` — для случаев, когда ответ реально нужен: пришла команда), чтобы не держаться за устаревшее.
+ */
+export async function botIsAdmin(chat: ChatRow, recheck = false): Promise<boolean> {
+  if (chat.botIsAdmin === true) return true;
+  if (chat.botIsAdmin === false && !recheck) return false;
+  try {
+    botId ??= (await tg().getMe()).id;
+    const m = await tg().getChatMember(chat.id, botId);
+    const admin = m.status === 'administrator' || m.status === 'creator';
+    await setBotAdmin(chat.id, admin);
+    return admin;
+  } catch {
+    // Telegram не ответил: известное значение сохраняем, а для чатов без пометки не ломаем работу
+    return chat.botIsAdmin ?? true;
+  }
+}
+
 export async function migrateChat(oldId: number, newId: number): Promise<void> {
   await getDb().transaction(async (tx) => {
     await tx.delete(chats).where(eq(chats.id, newId));

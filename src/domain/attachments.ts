@@ -14,6 +14,7 @@ interface PhotoSize { file_id: string; file_unique_id: string; width: number; he
 
 /** Часть сообщения Telegram, из которой берём вложения. */
 export interface MessageWithMedia {
+  media_group_id?: string;
   photo?: PhotoSize[];
   document?: FileLike;
   video?: FileLike;
@@ -23,7 +24,8 @@ export interface MessageWithMedia {
   reply_to_message?: MessageWithMedia;
 }
 
-function ownAttachments(msg: MessageWithMedia): AttachmentInput[] {
+/** Вложения одного сообщения (без учёта ответа). */
+export function messageAttachments(msg: MessageWithMedia): AttachmentInput[] {
   const out: AttachmentInput[] = [];
   if (msg.photo?.length) {
     // Telegram присылает одно фото в нескольких размерах — берём самое большое
@@ -45,9 +47,19 @@ function ownAttachments(msg: MessageWithMedia): AttachmentInput[] {
 
 /** Вложения команды /task: из самого сообщения и из сообщения, на которое оно отвечает. Дубликаты отбрасываются. */
 export function extractAttachments(msg: MessageWithMedia): AttachmentInput[] {
-  const all = [...(msg.reply_to_message ? ownAttachments(msg.reply_to_message) : []), ...ownAttachments(msg)];
+  return mergeAttachments(msg.reply_to_message ? messageAttachments(msg.reply_to_message) : [], messageAttachments(msg));
+}
+
+/** Номера альбомов (media_group_id): сначала сообщения, на которое ответили, затем самого сообщения. */
+export function mediaGroupIds(msg: MessageWithMedia): string[] {
+  const ids = [msg.reply_to_message?.media_group_id, msg.media_group_id].filter((x): x is string => !!x);
+  return [...new Set(ids)];
+}
+
+/** Объединяет списки вложений, отбрасывая повторы по file_unique_id (порядок сохраняется). */
+export function mergeAttachments(...lists: AttachmentInput[][]): AttachmentInput[] {
   const seen = new Set<string>();
-  return all.filter((a) => (seen.has(a.uniqueId) ? false : (seen.add(a.uniqueId), true)));
+  return lists.flat().filter((a) => (seen.has(a.uniqueId) ? false : (seen.add(a.uniqueId), true)));
 }
 
 /** Можно ли показать вложение как картинку-превью. */
