@@ -8,6 +8,7 @@ import { api, errorText } from './api';
 import { Avatar } from './Avatar';
 import { CardItem, CardOverlay } from './CardItem';
 import { CardSheet } from './CardSheet';
+import { GroupAvatar } from './GroupAvatar';
 import { IconChart, IconClose, IconRefresh, IconSearch, IconSliders } from './icons';
 import { OptionsSheet } from './OptionsSheet';
 import { loadPrefs, savePrefs, type BoardPrefs } from './prefs';
@@ -247,6 +248,7 @@ export function Board({ chatId, openTaskNumber, onBack, onAnalytics }: { chatId:
     <>
       <header className={s.top}>
         <div className={s.titleRow}>
+          <span className={s.titleAvatar}><GroupAvatar chatId={board.chat.id} title={board.chat.title || 'Доска'} size={30} /></span>
           <h1 className={s.title}>{board.chat.title || 'Доска'}</h1>
           <button className={query ? `${s.iconBtn} ${s.badgeDot}` : s.iconBtn} onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))} aria-label="Поиск по карточкам" aria-expanded={searchOpen}>
             <IconSearch />

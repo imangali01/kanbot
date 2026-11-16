@@ -273,11 +273,11 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
                 </button>
               ))}
             </div>
-            {(card.canDelete || (card.canEditText && !detail.description)) && (
               <div className={s.menuWrap} ref={menuRef}>
                 <button className={s.iconBtn} aria-label="Ещё" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><IconMore size={20} /></button>
                 {menuOpen && (
                   <div className={s.menu} role="menu">
+                    <button className={s.menuItem} role="menuitem" onClick={() => { setMenuOpen(false); void openHistory(); }}><IconHistory size={18} />История</button>
                     {card.canEditText && !detail.description && !descOpen && (
                       <button className={s.menuItem} role="menuitem" onClick={() => { setMenuOpen(false); setDescOpen(true); }}><IconNote size={18} />Добавить описание</button>
                     )}
@@ -285,7 +285,6 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
                   </div>
                 )}
               </div>
-            )}
           </div>
 
           {card.canEditText ? (
@@ -448,7 +447,6 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
 
           <div className={s.actions}>
             <button className={s.chipBtnPrimary} onClick={() => void showInChat()}><IconReply size={13} />Показать в чате</button>
-            <button className={s.chipBtn} onClick={() => void openHistory()}><IconHistory size={13} />История</button>
             {card.canEdit && !card.blocked && blockReason === null && <button className={s.chipBtn} onClick={() => setBlockReason('')}><IconLock size={13} />Заблокировать</button>}
           </div>
 

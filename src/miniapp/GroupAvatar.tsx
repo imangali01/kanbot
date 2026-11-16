@@ -8,7 +8,7 @@ import s from './miniapp.module.css';
 const cache = new Map<number, string | null>();
 
 /** Аватарка группы из Telegram; пока грузится или если фото нет — цветная плитка с первой буквой названия. */
-export function GroupAvatar({ chatId, title }: { chatId: number; title: string }) {
+export function GroupAvatar({ chatId, title, size = 44 }: { chatId: number; title: string; size?: number }) {
   const [src, setSrc] = useState<string | null>(cache.get(chatId) ?? null);
 
   useEffect(() => {
@@ -24,13 +24,14 @@ export function GroupAvatar({ chatId, title }: { chatId: number; title: string }
     return () => { alive = false; };
   }, [chatId]);
 
+  const box = { width: size, height: size, borderRadius: Math.round(size * 0.32), fontSize: Math.round(size * 0.41) } as CSSProperties;
   if (src) {
     return (
-      <span className={s.tile}>
+      <span className={s.tile} style={box}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className={s.tileImg} src={src} alt="" />
       </span>
     );
   }
-  return <span className={s.tile} style={{ '--h': avatarHue(title) } as CSSProperties}>{Array.from(title)[0].toUpperCase()}</span>;
+  return <span className={s.tile} style={{ ...box, '--h': avatarHue(title) } as CSSProperties}>{Array.from(title)[0].toUpperCase()}</span>;
 }

@@ -345,3 +345,5 @@
 .tileImg { display: block; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
 @keyframes descIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .descField { animation: none; } }
+
+.titleAvatar { flex: none; display: flex; margin-right: 8px; }
