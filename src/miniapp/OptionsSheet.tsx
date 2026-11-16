@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { DISPLAY_NAME_MAX } from '@/domain/displayName';
 import type { SortMode } from '@/domain/types';
-import { IconCheck } from './icons';
+import { IconCheck, IconRefresh } from './icons';
 import { Sheet } from './Sheet';
 import type { BoardPrefs } from './prefs';
 import s from './miniapp.module.css';
@@ -14,7 +14,8 @@ export const SORT_LABELS: Record<SortMode, string> = {
   deadline: 'По сроку',
 };
 
-export function OptionsSheet({ prefs, onChange, onClose, myName, onRename }: { prefs: BoardPrefs; onChange: (p: BoardPrefs) => void; onClose: () => void; myName: string; onRename: (name: string) => Promise<void> }) {
+export function OptionsSheet({ prefs, onChange, onClose, myName, onRename, onRefresh }: { prefs: BoardPrefs; onChange: (p: BoardPrefs) => void; onClose: () => void; myName: string; onRename: (name: string) => Promise<void>; onRefresh: () => Promise<void> }) {
+  const [refreshing, setRefreshing] = useState(false);
   const [name, setName] = useState(myName);
   const [saving, setSaving] = useState(false);
   const save = async () => {
@@ -41,6 +42,16 @@ export function OptionsSheet({ prefs, onChange, onClose, myName, onRename }: { p
         <span className={prefs.showAll ? s.switchOn : s.switch} />
       </button>
       <p className={s.optHint}>Выполненные больше 30 дней назад скрыты, чтобы колонка Done не разрасталась.</p>
+      <div className={s.optSep} />
+      <button
+        className={s.opt}
+        disabled={refreshing}
+        onClick={async () => { setRefreshing(true); try { await onRefresh(); } finally { setRefreshing(false); } }}
+      >
+        <span>{refreshing ? 'Обновляю…' : 'Обновить доску'}</span>
+        <span className={refreshing ? s.spin : undefined}><IconRefresh size={18} /></span>
+      </button>
+      <p className={s.optHint}>Доска обновляется сама, когда кто-то меняет карточки. Кнопка нужна, если связь пропадала.</p>
       <div className={s.optSep} />
       <label className={s.optHint} htmlFor="my-name">Моё имя на доске</label>
       <div className={s.nameRow}>

@@ -3,7 +3,7 @@ import { canView } from '@/domain/permissions';
 import { getActor, getChat } from '@/server/chats';
 import { AccessError } from '@/server/errors';
 import { handle, requireTgUser, toId, type Params } from '@/server/http';
-import { loadAnalytics } from '@/server/tasks';
+import { loadAnalytics } from '@/server/analytics';
 
 export const dynamic = 'force-dynamic';
 

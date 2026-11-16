@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { NO_ASSIGNEE, isHiddenDone, matchesQuery, sortCards, visibleCards } from './board';
+import { NO_ASSIGNEE, columnStats, countFlags, daysInProgress, isHiddenDone, isOverdue, matchesFlag, matchesQuery, sortCards, visibleCards } from './board';
 import type { CardView } from './types';
 
 const card = (p: Partial<CardView>): CardView => ({
   id: 1, number: 1, text: 't', status: 'todo', position: 0, stars: 1, deadline: '2026-10-03', blocked: false,
-  blockedReason: null, createdAt: '2026-10-01T00:00:00.000Z', doneAt: null, authorId: 1, authorName: 'A',
+  blockedReason: null, createdAt: '2026-10-01T00:00:00.000Z', doneAt: null, inProgressSince: null, authorId: 1, authorName: 'A',
   assignees: [], canEdit: true, canMove: true, canEditText: true, canDelete: true, canChangeAuthor: false, ...p,
 });
 const now = new Date('2026-11-15T00:00:00Z');
@@ -75,5 +75,48 @@ describe('matchesQuery', () => {
     expect(visibleCards([old], { now, showAll: false, assigneeKey: null })).toHaveLength(0);
     expect(visibleCards([old], { now, showAll: false, assigneeKey: null, query: 'области' })).toHaveLength(1);
     expect(visibleCards([old], { now, showAll: false, assigneeKey: null, query: 'регион' })).toHaveLength(0);
+  });
+});
+
+describe('быстрые фильтры и показатели доски', () => {
+  // now = 15.11.2026: срок 14.11 — просрочено, 15.11 — сегодня, 16.11 — завтра
+  const overdue = card({ id: 10, deadline: '2026-11-14' });
+  const today = card({ id: 11, deadline: '2026-11-15' });
+  const blockedCard = card({ id: 12, deadline: '2026-11-20', blocked: true, blockedReason: 'жду' });
+  const doneLate = card({ id: 13, deadline: '2026-11-01', status: 'done', doneAt: '2026-11-10T00:00:00.000Z', blocked: true });
+
+  it('isOverdue: открытая задача с прошедшим сроком; сегодня и выполненные — нет', () => {
+    expect(isOverdue(overdue, now)).toBe(true);
+    expect(isOverdue(today, now)).toBe(false);
+    expect(isOverdue(doneLate, now)).toBe(false);
+  });
+
+  it('matchesFlag: blocked не считает выполненные, null пропускает всё', () => {
+    expect(matchesFlag(blockedCard, 'blocked', now)).toBe(true);
+    expect(matchesFlag(doneLate, 'blocked', now)).toBe(false);
+    expect(matchesFlag(today, null, now)).toBe(true);
+  });
+
+  it('countFlags считает по открытым задачам', () => {
+    expect(countFlags([overdue, today, blockedCard, doneLate], now)).toEqual({ overdue: 1, blocked: 1 });
+  });
+
+  it('visibleCards применяет флаг вместе с остальными фильтрами', () => {
+    const all = [overdue, today, blockedCard];
+    expect(visibleCards(all, { now, showAll: false, assigneeKey: null, flag: 'overdue' }).map((c) => c.id)).toEqual([10]);
+    expect(visibleCards(all, { now, showAll: false, assigneeKey: null, flag: null }).map((c) => c.id)).toEqual([10, 11, 12]);
+  });
+
+  it('daysInProgress: только для карточек в работе, по календарным дням Алматы', () => {
+    const inWork = card({ status: 'in_progress', inProgressSince: '2026-11-12T10:00:00.000Z' });
+    expect(daysInProgress(inWork, now)).toBe(3);
+    expect(daysInProgress({ ...inWork, inProgressSince: '2026-11-15T01:00:00.000Z' }, now)).toBe(0);
+    expect(daysInProgress({ ...inWork, inProgressSince: null }, now)).toBeNull();
+    expect(daysInProgress(card({ status: 'todo', inProgressSince: '2026-11-12T10:00:00.000Z' }), now)).toBeNull();
+  });
+
+  it('columnStats: количество и сумма сложности', () => {
+    expect(columnStats([])).toEqual({ count: 0, stars: 0 });
+    expect(columnStats([card({ stars: 2 }), card({ stars: 5 })])).toEqual({ count: 2, stars: 7 });
   });
 });

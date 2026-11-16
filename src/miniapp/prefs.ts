@@ -1,8 +1,9 @@
+import type { BoardFlag } from '@/domain/board';
 import type { SortMode } from '@/domain/types';
 
-export interface BoardPrefs { sort: SortMode; assigneeKey: string | null; showAll: boolean }
+export interface BoardPrefs { sort: SortMode; assigneeKey: string | null; showAll: boolean; flag: BoardFlag | null }
 
-const DEFAULT: BoardPrefs = { sort: 'manual', assigneeKey: null, showAll: false };
+const DEFAULT: BoardPrefs = { sort: 'manual', assigneeKey: null, showAll: false, flag: null };
 const key = (chatId: number) => `kanbot:prefs:${chatId}`;
 
 export function loadPrefs(chatId: number): BoardPrefs {

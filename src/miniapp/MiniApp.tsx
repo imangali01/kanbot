@@ -50,7 +50,12 @@ export function MiniApp() {
       ) : view.kind === 'admin' ? (
         <AdminChats call={adminCall} onBack={toChats} />
       ) : view.kind === 'analytics' ? (
-        <Analytics chatId={view.chatId} title={view.title} onBack={() => setView({ kind: 'board', chatId: view.chatId, taskNumber: null })} />
+        <Analytics
+          chatId={view.chatId}
+          title={view.title}
+          onBack={() => setView({ kind: 'board', chatId: view.chatId, taskNumber: null })}
+          onOpenTask={(taskNumber) => setView({ kind: 'board', chatId: view.chatId, taskNumber })}
+        />
       ) : (
         <Board chatId={view.chatId} openTaskNumber={view.taskNumber} onBack={toChats} onAnalytics={(title) => setView({ kind: 'analytics', chatId: view.chatId, title })} />
       )}

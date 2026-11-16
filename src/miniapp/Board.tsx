@@ -2,14 +2,14 @@
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, closestCorners, useDroppable, useSensor, useSensors, type DragEndEvent, type DragOverEvent, type DragStartEvent, type UniqueIdentifier } from '@dnd-kit/core';
 import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { NO_ASSIGNEE, sortCards, visibleCards } from '@/domain/board';
+import { NO_ASSIGNEE, columnStats, countFlags, isHiddenDone, sortCards, visibleCards, type BoardFlag } from '@/domain/board';
 import { STATUSES, STATUS_TITLES, type BoardView, type CardView, type Status } from '@/domain/types';
 import { api, errorText } from './api';
 import { Avatar } from './Avatar';
 import { CardItem, CardOverlay } from './CardItem';
 import { CardSheet } from './CardSheet';
 import { GroupAvatar } from './GroupAvatar';
-import { IconChart, IconClose, IconRefresh, IconSearch, IconSliders } from './icons';
+import { IconChart, IconClose, IconSearch, IconSliders } from './icons';
 import { OptionsSheet } from './OptionsSheet';
 import { loadPrefs, savePrefs, type BoardPrefs } from './prefs';
 import { webApp } from './telegram';
@@ -26,24 +26,29 @@ const EMPTY_TEXT: Record<Status, string> = {
 const POLL_MS = 4000;
 
 function buildColumns(cards: CardView[], prefs: BoardPrefs, query: string): Columns {
-  const visible = visibleCards(cards, { now: new Date(), showAll: prefs.showAll, assigneeKey: prefs.assigneeKey, query });
+  const visible = visibleCards(cards, { now: new Date(), showAll: prefs.showAll, assigneeKey: prefs.assigneeKey, query, flag: prefs.flag });
   const by = (st: Status) => sortCards(visible.filter((c) => c.status === st), prefs.sort);
   return { todo: by('todo'), in_progress: by('in_progress'), done: by('done') };
 }
 
-function Column({ status, cards, searching, onOpen }: { status: Status; cards: CardView[]; searching: boolean; onOpen: (id: number) => void }) {
+function Column({ status, cards, searching, hiddenDone, onShowOld, onOpen }: { status: Status; cards: CardView[]; searching: boolean; hiddenDone: number; onShowOld: () => void; onOpen: (id: number) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
+  const stats = columnStats(cards);
   return (
     <section className={s.col} aria-label={STATUS_TITLES[status]}>
       <div className={s.colHead}>
         <span className={s[`dot_${status}`]} />
         <span>{STATUS_TITLES[status]}</span>
-        <span className={s.tabCount}>{cards.length}</span>
+        <span className={s.tabCount}>{stats.count}</span>
+        {stats.stars > 0 && <span className={s.colStat} title="Сумма сложности карточек в колонке">{stats.stars} ★</span>}
       </div>
       <SortableContext id={status} items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
         <div ref={setNodeRef} className={isOver ? `${s.colBody} ${s.colOver}` : s.colBody}>
           {cards.map((c) => <CardItem key={c.id} card={c} onOpen={onOpen} />)}
           {cards.length === 0 && <div className={s.empty}>{searching ? 'Ничего не найдено.' : EMPTY_TEXT[status]}</div>}
+          {status === 'done' && hiddenDone > 0 && !searching && (
+            <button className={s.moreOld} onClick={onShowOld}>Показать ещё {hiddenDone} старых</button>
+          )}
         </div>
       </SortableContext>
     </section>
@@ -61,7 +66,6 @@ export function Board({ chatId, openTaskNumber, onBack, onAnalytics }: { chatId:
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const dragFrom = useRef<Status | null>(null);
   const snapshot = useRef<Columns | null>(null);
@@ -70,13 +74,10 @@ export function Board({ chatId, openTaskNumber, onBack, onAnalytics }: { chatId:
   const busy = useRef(false);
 
   const refresh = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
     try {
       setBoard(await api<BoardView>(`/api/app/chats/${chatId}/board`));
     } catch (e) {
       if (!silent) setToast(errorText(e));
-    } finally {
-      if (!silent) setLoading(false);
     }
   }, [chatId]);
 
@@ -243,6 +244,19 @@ export function Board({ chatId, openTaskNumber, onBack, onAnalytics }: { chatId:
     );
   };
   const nonDefault = prefs.sort !== 'manual' || prefs.showAll;
+  const now = new Date();
+  const flagCounts = countFlags(board.cards.filter((c) => !isHiddenDone(c, now)), now);
+  const hiddenDone = prefs.showAll ? 0 : board.cards.filter((c) => isHiddenDone(c, now) && (prefs.assigneeKey === null || (prefs.assigneeKey === NO_ASSIGNEE ? c.assignees.length === 0 : c.assignees.some((a) => a.key === prefs.assigneeKey)))).length;
+  const flagBtn = (flag: BoardFlag, label: string) => {
+    const on = prefs.flag === flag;
+    if (!on && flagCounts[flag] === 0) return null;
+    return (
+      <button key={flag} className={on ? s.flagOn : s.flagChip} aria-pressed={on} onClick={() => setPrefs({ ...prefs, flag: on ? null : flag })}>
+        {label}
+        <span className={s.flagCount}>{flagCounts[flag]}</span>
+      </button>
+    );
+  };
 
   return (
     <>
@@ -255,9 +269,6 @@ export function Board({ chatId, openTaskNumber, onBack, onAnalytics }: { chatId:
           </button>
           <button className={s.iconBtn} onClick={() => onAnalytics(board.chat.title || 'Доска')} aria-label="Аналитика">
             <IconChart />
-          </button>
-          <button className={loading ? `${s.iconBtn} ${s.spin}` : s.iconBtn} onClick={() => void refresh()} disabled={loading} aria-label="Обновить доску">
-            <IconRefresh />
           </button>
           <button className={nonDefault ? `${s.iconBtn} ${s.badgeDot}` : s.iconBtn} onClick={() => setShowOptions(true)} aria-label="Настройки доски">
             <IconSliders />
@@ -282,6 +293,8 @@ export function Board({ chatId, openTaskNumber, onBack, onAnalytics }: { chatId:
         <div className={s.filters} role="group" aria-label="Фильтр по исполнителю">
           {filterBtn(null, 'Все')}
           {filterBtn(meKey, 'Мои')}
+          {flagBtn('overdue', 'Просрочено')}
+          {flagBtn('blocked', 'Заблокировано')}
           {filterBtn(NO_ASSIGNEE, 'Без исполнителя')}
           {others.map((m) => filterBtn(m.key, m.name.split(' ')[0], m.name))}
         </div>
@@ -299,7 +312,7 @@ export function Board({ chatId, openTaskNumber, onBack, onAnalytics }: { chatId:
 
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={() => { setActiveId(null); restore(); }}>
         <div ref={scroller} onScroll={onScroll} className={activeId !== null ? s.boardDragging : s.board}>
-          {STATUSES.map((st) => <Column key={st} status={st} cards={columns[st]} searching={query.trim() !== ''} onOpen={setOpenId} />)}
+          {STATUSES.map((st) => <Column key={st} status={st} cards={columns[st]} searching={query.trim() !== '' || prefs.flag !== null || prefs.assigneeKey !== null} hiddenDone={hiddenDone} onShowOld={() => setPrefs({ ...prefs, showAll: true })} onOpen={setOpenId} />)}
         </div>
         <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }}>{active ? <CardOverlay card={active} /> : null}</DragOverlay>
       </DndContext>
@@ -310,6 +323,7 @@ export function Board({ chatId, openTaskNumber, onBack, onAnalytics }: { chatId:
           prefs={prefs}
           onChange={setPrefs}
           onClose={() => setShowOptions(false)}
+          onRefresh={() => refresh()}
           myName={board.members.find((m) => m.userId === board.me.userId)?.name ?? ''}
           onRename={async (displayName) => {
             try {

@@ -36,6 +36,7 @@ const cut = (s: string, max: number) => (s.length <= max ? s : `${s.slice(0, max
 
 // Только базовый CSS и блочная вёрстка: виджет работает не в браузере, а в упрощённом движке Telegram.
 const STYLE =
+  'body{margin:0;padding:0}' +
   '.c{box-sizing:border-box;margin:0;padding:12px 14px 12px 16px;background:#17191f;color:#f2f3f5;border-left:4px solid;border-radius:14px;font:15px/1.35 -apple-system,system-ui,sans-serif;overflow:hidden}' +
   '.h{display:flex;align-items:center}' +
   '.a{flex:none;width:34px;height:34px;margin-right:10px;border-radius:10px;color:#fff;font-weight:700;text-align:center;line-height:34px}' +

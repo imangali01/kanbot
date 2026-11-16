@@ -1,6 +1,7 @@
 'use client';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { AGING_WARN_DAYS, daysInProgress } from '@/domain/board';
 import { daysUntil, deadlineLabel } from '@/domain/dates';
 import { ticketId } from '@/domain/ticketId';
 import type { CardView } from '@/domain/types';
@@ -11,7 +12,8 @@ import s from './miniapp.module.css';
 export function CardBody({ card }: { card: CardView }) {
   const now = new Date();
   const days = daysUntil(card.deadline, now);
-  const dueClass = card.status === 'done' ? s.due : days < 0 ? s.dueOverdue : days === 0 ? s.dueToday : s.due;
+  const dueClass = card.status === 'done' ? s.pill : days < 0 ? s.pillOverdue : days === 0 ? s.pillToday : s.pill;
+  const age = daysInProgress(card, now);
   return (
     <>
       <div className={s.cardNum}>{ticketId(card.number)}</div>
@@ -23,10 +25,16 @@ export function CardBody({ card }: { card: CardView }) {
         </div>
       )}
       <div className={s.cardMeta}>
-        <span className={s.stars} aria-label={`Сложность ${card.stars} из 5`}>
-          {Array.from({ length: card.stars }, (_, i) => <IconStar key={i} size={13} filled />)}
-        </span>
         <span className={dueClass}>{deadlineLabel(card.deadline, now, card.status === 'done' ? card.doneAt : null)}</span>
+        <span className={s.starChip} aria-label={`Сложность ${card.stars} из 5`}>
+          <IconStar size={12} filled />
+          {card.stars}
+        </span>
+        {age !== null && (
+          <span className={age >= AGING_WARN_DAYS ? s.pillAging : s.pill} title="Сколько карточка уже в работе">
+            {age === 0 ? 'взято сегодня' : `в работе ${age} дн.`}
+          </span>
+        )}
         {card.assignees.length > 0 && (
           <span className={s.avatars}>
             {card.assignees.slice(0, 3).map((a) => <Avatar key={a.key} name={a.name} stacked />)}

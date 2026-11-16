@@ -1,15 +1,14 @@
-import { and, asc, eq, gte, inArray, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { getDb } from '@/db/client';
-import { chats, comments, taskAssignees, taskAttachments, tasks, users } from '@/db/schema';
+import { chats, comments, taskAssignees, taskAttachments, taskEvents, tasks, users } from '@/db/schema';
 import { mergeAttachments, type AttachmentInput } from '@/domain/attachments';
-import { analyticsSince, buildAnalytics, type ClosedTask } from '@/domain/analytics';
 import { tomorrow } from '@/domain/dates';
 import { supergroupMessageLink } from '@/domain/links';
 import { placeCard, topPosition } from '@/domain/ordering';
 import type { AssigneeRef } from '@/domain/parseTaskCommand';
 import { mergeHistory } from '@/domain/events';
 import { canChangeAuthor, canComment, canDelete, canEdit, canEditText, canMove, canView, type Actor, type TaskAccessRef } from '@/domain/permissions';
-import type { AnalyticsDays, AnalyticsView, AssigneeView, AttachmentView, BoardView, CardView, CommentView, HistoryItem, Status, TaskDetail } from '@/domain/types';
+import type { AssigneeView, AttachmentView, BoardView, CardView, CommentView, HistoryItem, Status, TaskDetail } from '@/domain/types';
 import { commentText, displayName, pingText } from '@/telegram/messages';
 import { deleteMessage, replyInGroup } from '@/telegram/notifier';
 import { getActor, getChat, listMembers, type ChatRow } from './chats';
@@ -22,11 +21,11 @@ import { findUserByUsername, upsertUser } from './users';
 export type TaskRow = typeof tasks.$inferSelect;
 export interface TaskPatch { text?: string; description?: string; stars?: number; deadline?: string; assigneeKeys?: string[]; authorId?: number }
 type AssigneeRow = { userId: number | null; username: string | null };
-interface CardItem { row: TaskRow; assignees: AssigneeView[]; authorName: string }
+interface CardItem { row: TaskRow; assignees: AssigneeView[]; authorName: string; inProgressSince: string | null }
 
 const unknownUser = { firstName: '?', lastName: null, username: null };
 
-async function fetchCards(chatId: number, taskIds?: number[], doneSince?: Date): Promise<CardItem[]> {
+async function fetchCards(chatId: number, taskIds?: number[]): Promise<CardItem[]> {
   const db = getDb();
   const rows = await db
     .select()
@@ -34,7 +33,6 @@ async function fetchCards(chatId: number, taskIds?: number[], doneSince?: Date):
     .where(and(
       eq(tasks.chatId, chatId),
       taskIds ? inArray(tasks.id, taskIds) : undefined,
-      doneSince ? and(eq(tasks.status, 'done'), gte(tasks.doneAt, doneSince)) : undefined,
     ));
   if (rows.length === 0) return [];
 
@@ -54,10 +52,22 @@ async function fetchCards(chatId: number, taskIds?: number[], doneSince?: Date):
         : { key: `n:${a.username}`, userId: null, username: a.username, name: `@${a.username}` };
     byTask.set(a.taskId, [...(byTask.get(a.taskId) ?? []), view]);
   }
+  // «в работе с»: последний переход в In progress из журнала (у старых тикетов журнала нет — тогда пусто)
+  const inProgressIds = rows.filter((r) => r.status === 'in_progress').map((r) => r.id);
+  const startedAt = new Map<number, string>();
+  if (inProgressIds.length) {
+    const moves = await db
+      .select({ taskId: taskEvents.taskId, createdAt: taskEvents.createdAt })
+      .from(taskEvents)
+      .where(and(inArray(taskEvents.taskId, inProgressIds), eq(taskEvents.type, 'status'), sql`${taskEvents.payload}->>'to' = 'in_progress'`))
+      .orderBy(asc(taskEvents.createdAt));
+    for (const m of moves) startedAt.set(m.taskId, m.createdAt.toISOString());
+  }
   return rows.map((row) => ({
     row,
     assignees: byTask.get(row.id) ?? [],
     authorName: displayName(authorById.get(row.authorId) ?? unknownUser),
+    inProgressSince: startedAt.get(row.id) ?? null,
   }));
 }
 
@@ -80,6 +90,7 @@ function toCardView(item: CardItem, actor: Actor): CardView {
     blockedReason: row.blockedReason,
     createdAt: row.createdAt.toISOString(),
     doneAt: row.doneAt?.toISOString() ?? null,
+    inProgressSince: item.inProgressSince,
     authorId: row.authorId,
     authorName: item.authorName,
     assignees: item.assignees,
@@ -434,16 +445,4 @@ export async function showInChat(taskId: number, userId: number): Promise<{ mode
   const sent = await replyInGroup(ctx.chat.id, ctx.task.sourceMessageId, pingText(ctx.task.number));
   await getDb().update(chats).set({ lastPinMessageId: sent?.message_id ?? null }).where(eq(chats.id, ctx.chat.id));
   return { mode: 'pinged' };
-}
-
-export async function loadAnalytics(chat: ChatRow, days: AnalyticsDays, now: Date, assignee: string | null): Promise<AnalyticsView> {
-  const items = await fetchCards(chat.id, undefined, analyticsSince(days, now));
-  const closed: ClosedTask[] = items.map(({ row, assignees }) => ({
-    stars: row.stars,
-    createdAt: row.createdAt.toISOString(),
-    doneAt: row.doneAt!.toISOString(),
-    deadline: row.deadline,
-    assignees,
-  }));
-  return buildAnalytics(closed, days, now, assignee);
 }

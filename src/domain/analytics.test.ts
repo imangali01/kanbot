@@ -1,144 +1,241 @@
 import { describe, expect, it } from 'vitest';
-import { analyticsSince, buildAnalytics, isAssigneeFilter, parseAnalyticsDays, type ClosedTask } from './analytics';
+import { analyticsSince, buildAnalytics, DEFAULT_SLE_DAYS, isAssigneeFilter, parseAnalyticsDays, type AnalyticsTask } from './analytics';
+import type { FlowEvent } from './flow';
+import type { Status } from './types';
 
 // 2026-10-02 12:00 Алматы (UTC+5), пятница
 const NOW = new Date('2026-10-02T07:00:00Z');
+const at = (local: string) => new Date(`${local.replace(' ', 'T')}:00+05:00`).toISOString();
+const move = (when: string, from: Status, to: Status): FlowEvent => ({ type: 'status', at: at(when), from, to });
 const ann = { key: 'u:1', userId: 1, username: 'ann', name: 'Анна Ли' };
 const bob = { key: 'u:2', userId: 2, username: 'bob', name: 'Боб Ким' };
 
-function task(over: Partial<ClosedTask> = {}): ClosedTask {
-  return { stars: 3, createdAt: '2026-09-28T05:00:00Z', doneAt: '2026-10-01T05:00:00Z', deadline: '2026-10-01', assignees: [ann], ...over };
+let seq = 0;
+function task(over: Partial<AnalyticsTask> = {}): AnalyticsTask {
+  seq++;
+  return {
+    id: seq, number: seq, text: `Задача ${seq}`, stars: 3, deadline: '2026-10-10', assignees: [ann],
+    status: 'todo', createdAt: at('2026-09-20 10:00'), doneAt: null, blocked: false, events: [], ...over,
+  };
+}
+/** Закрытая задача: в работу взята в started, закрыта в done (местное время). */
+function closed(started: string | null, done: string, over: Partial<AnalyticsTask> = {}): AnalyticsTask {
+  const events = started ? [move(started, 'todo', 'in_progress'), move(done, 'in_progress', 'done')] : [move(done, 'todo', 'done')];
+  return task({ status: 'done', doneAt: at(done), events, ...over });
 }
 
-describe('parseAnalyticsDays', () => {
-  it('принимает только 7, 30, 90; по умолчанию 30', () => {
+describe('параметры', () => {
+  it('parseAnalyticsDays: только 7, 30, 90; по умолчанию 30', () => {
     expect(parseAnalyticsDays(null)).toBe(30);
     expect(parseAnalyticsDays('7')).toBe(7);
     expect(parseAnalyticsDays('90')).toBe(90);
     expect(parseAnalyticsDays('365')).toBeNull();
     expect(parseAnalyticsDays('abc')).toBeNull();
   });
-});
-
-describe('analyticsSince', () => {
-  it('захватывает весь прошлый период с запасом', () => {
-    // период 7 дней: 2026-09-26..2026-10-02, прошлый: 2026-09-19..2026-09-25
+  it('isAssigneeFilter', () => {
+    expect(isAssigneeFilter('u:123')).toBe(true);
+    expect(isAssigneeFilter('n:ann_1')).toBe(true);
+    expect(isAssigneeFilter('none')).toBe(true);
+    expect(isAssigneeFilter('u:abc')).toBe(false);
+    expect(isAssigneeFilter('n:a b')).toBe(false);
+    expect(isAssigneeFilter('')).toBe(false);
+  });
+  it('analyticsSince захватывает весь прошлый период с запасом', () => {
+    // период 7 дней: 2026-09-26..2026-10-02, прошлый: 2026-09-19..2026-09-25 (начало — 2026-09-18T19:00Z)
     expect(analyticsSince(7, NOW).getTime()).toBeLessThanOrEqual(new Date('2026-09-18T19:00:00Z').getTime());
   });
 });
 
-describe('buildAnalytics', () => {
+describe('пропускная способность', () => {
   it('границы периода по Алматы', () => {
     const v = buildAnalytics([
-      task({ doneAt: '2026-10-02T18:30:00Z' }), // 23:30 2 октября по Алматы — внутри
-      task({ doneAt: '2026-09-25T18:59:00Z' }), // 23:59 25 сентября — прошлый период
-      task({ doneAt: '2026-09-25T19:00:00Z' }), // 00:00 26 сентября — внутри
+      task({ status: 'done', doneAt: '2026-10-02T06:30:00Z' }), // 11:30 2 октября — текущий
+      task({ status: 'done', doneAt: '2026-09-25T18:59:00Z' }), // 23:59 25 сентября — прошлый период
+      task({ status: 'done', doneAt: '2026-09-25T19:00:00Z' }), // 00:00 26 сентября — текущий
     ], 7, NOW);
     expect(v.from).toBe('2026-09-26');
     expect(v.to).toBe('2026-10-02');
     expect(v.kpi.closed).toEqual({ value: 2, prev: 1 });
   });
 
-  it('звёзды, вовремя и дельты', () => {
+  it('закрытие в 23:30 по Алматы попадает в свой день', () => {
+    const v = buildAnalytics([task({ status: 'done', doneAt: '2026-10-01T18:30:00Z' })], 7, NOW); // 23:30 1 октября
+    expect(v.throughput.find((b) => b.start === '2026-10-01')?.closed).toBe(1);
+    expect(v.cfd.points.find((p) => p.date === '2026-10-01')?.done).toBe(1);
+    expect(v.cfd.points.find((p) => p.date === '2026-09-30')?.done).toBe(0);
+  });
+
+  it('звёзды и дельты', () => {
     const v = buildAnalytics([
-      task({ stars: 5, deadline: '2026-10-01' }),                                  // вовремя (в день дедлайна)
-      task({ stars: 2, deadline: '2026-09-30' }),                                  // просрочено
-      task({ stars: 1, doneAt: '2026-09-20T05:00:00Z', deadline: '2026-09-25' }),  // прошлый период, вовремя
+      closed('2026-09-30 10:00', '2026-10-01 10:00', { stars: 5 }),
+      closed('2026-09-30 10:00', '2026-10-01 10:00', { stars: 2 }),
+      closed('2026-09-19 10:00', '2026-09-20 10:00', { stars: 1 }),
     ], 7, NOW);
     expect(v.kpi.stars).toEqual({ value: 7, prev: 1 });
-    expect(v.kpi.onTime).toEqual({ value: 50, prev: 100 });
+    expect(v.throughput.find((b) => b.start === '2026-10-01')).toEqual({ start: '2026-10-01', end: '2026-10-01', closed: 2, stars: 7 });
   });
 
-  it('пустые периоды без деления на ноль', () => {
+  it('7 дней — по дням, 30 дней — по неделям с понедельника', () => {
+    expect(buildAnalytics([], 7, NOW).throughput).toHaveLength(7);
+    const w = buildAnalytics([], 30, NOW).throughput;
+    // период 2026-09-03 (чт) .. 2026-10-02 (пт)
+    expect(w[0]).toMatchObject({ start: '2026-09-03', end: '2026-09-06' });
+    expect(w[1]).toMatchObject({ start: '2026-09-07', end: '2026-09-13' });
+    expect(w.at(-1)).toMatchObject({ start: '2026-09-28', end: '2026-10-02' });
+    expect(w).toHaveLength(5);
+  });
+
+  it('пустая доска без деления на ноль', () => {
     const v = buildAnalytics([], 30, NOW);
+    expect(v.total).toBe(0);
     expect(v.kpi.closed).toEqual({ value: 0, prev: 0 });
-    expect(v.kpi.stars).toEqual({ value: 0, prev: 0 });
     expect(v.kpi.onTime).toEqual({ value: null, prev: null });
-    expect(v.byStars.map((r) => r.medianDays)).toEqual([null, null, null, null, null]);
+    expect(v.kpi.cycleP50).toEqual({ value: null, prev: null });
+    expect(v.cfd.littleDays).toBeNull();
+    expect(v.cfd.avgWip).toBe(0);
+    expect(v.blocks.share).toBeNull();
     expect(v.people).toEqual([]);
   });
+});
 
-  it('7 дней — корзины по дням', () => {
-    const v = buildAnalytics([task({ stars: 4 })], 7, NOW);
-    expect(v.buckets).toHaveLength(7);
-    expect(v.buckets[0]).toEqual({ start: '2026-09-26', end: '2026-09-26', byStars: [0, 0, 0, 0, 0] });
-    expect(v.buckets[5]).toEqual({ start: '2026-10-01', end: '2026-10-01', byStars: [0, 0, 0, 1, 0] });
+describe('время цикла и срок выполнения', () => {
+  it('цикл — от первого входа в In progress до Done, срок — от создания', () => {
+    const v = buildAnalytics([closed('2026-09-29 10:00', '2026-10-01 18:00', { createdAt: at('2026-09-28 10:00') })], 7, NOW);
+    expect(v.cycle.items[0]).toMatchObject({ cycleDays: 3, leadDays: 4, estimated: false, doneDate: '2026-10-01' });
+    expect(v.cycle.cycle).toEqual({ count: 1, p50: 3, p85: 3, p95: 3 });
+    expect(v.kpi.cycleP50.value).toBe(3);
   });
 
-  it('30 дней — корзины по неделям с понедельника, края обрезаны периодом', () => {
-    const v = buildAnalytics([], 30, NOW);
-    // период 2026-09-03 (чт) .. 2026-10-02 (пт)
-    expect(v.buckets[0]).toMatchObject({ start: '2026-09-03', end: '2026-09-06' });
-    expect(v.buckets[1]).toMatchObject({ start: '2026-09-07', end: '2026-09-13' });
-    expect(v.buckets.at(-1)).toMatchObject({ start: '2026-09-28', end: '2026-10-02' });
-    expect(v.buckets).toHaveLength(5);
-  });
-
-  it('медиана дней до закрытия по сложности', () => {
+  it('закрыта минуя In progress — только срок выполнения, цикл не портит', () => {
     const v = buildAnalytics([
-      task({ stars: 3, createdAt: '2026-09-30T05:00:00Z' }), // 1 день
-      task({ stars: 3, createdAt: '2026-09-28T05:00:00Z' }), // 3 дня
-      task({ stars: 3, createdAt: '2026-09-21T05:00:00Z' }), // 10 дней
-      task({ stars: 5, createdAt: '2026-09-29T05:00:00Z' }), // 2
-      task({ stars: 5, createdAt: '2026-09-26T05:00:00Z' }), // 5
-    ], 30, NOW);
-    expect(v.byStars[2]).toEqual({ stars: 3, closed: 3, medianDays: 3 });
-    expect(v.byStars[4]).toEqual({ stars: 5, closed: 2, medianDays: 3.5 });
-    expect(v.byStars[0]).toEqual({ stars: 1, closed: 0, medianDays: null });
+      closed(null, '2026-10-01 10:00', { createdAt: at('2026-09-01 10:00') }),
+      closed('2026-10-01 10:00', '2026-10-01 12:00'),
+    ], 7, NOW);
+    expect(v.cycle.withoutProgress).toBe(1);
+    expect(v.cycle.cycle).toEqual({ count: 1, p50: 1, p85: 1, p95: 1 });
+    expect(v.cycle.lead.count).toBe(2);
   });
 
-  it('по людям: двое исполнителей — у обоих, без исполнителя — отдельная строка, сортировка по звёздам', () => {
+  it('старая задача без журнала — оценка, без времени в работе', () => {
+    const v = buildAnalytics([task({ status: 'done', createdAt: at('2026-09-28 10:00'), doneAt: at('2026-09-30 10:00') })], 7, NOW);
+    expect(v.cycle.items[0]).toMatchObject({ cycleDays: null, leadDays: 3, estimated: true });
+    expect(v.cycle.estimated).toBe(1);
+  });
+
+  it('медиана прошлого периода — для дельты', () => {
     const v = buildAnalytics([
-      task({ stars: 5, assignees: [ann, bob] }),
-      task({ stars: 1, assignees: [bob] }),
-      task({ stars: 2, assignees: [] }),
-    ], 30, NOW);
-    expect(v.kpi.closed.value).toBe(3);
-    expect(v.people).toEqual([
-      { key: 'u:2', name: 'Боб Ким', byStars: [1, 0, 0, 0, 1], closed: 2, stars: 6 },
-      { key: 'u:1', name: 'Анна Ли', byStars: [0, 0, 0, 0, 1], closed: 1, stars: 5 },
-      { key: 'none', name: 'Без исполнителя', byStars: [0, 1, 0, 0, 0], closed: 1, stars: 2 },
-    ]);
+      closed('2026-10-01 10:00', '2026-10-01 12:00'),
+      closed('2026-09-20 10:00', '2026-09-24 10:00'),
+    ], 7, NOW);
+    expect(v.kpi.cycleP50).toEqual({ value: 1, prev: 5 });
+  });
+});
+
+describe('WIP и возраст', () => {
+  it('возраст с последнего входа в работу, порог по умолчанию при малом числе данных', () => {
+    const v = buildAnalytics([
+      task({ status: 'in_progress', events: [move('2026-09-25 10:00', 'todo', 'in_progress')] }),
+      task({ status: 'in_progress', events: [move('2026-09-21 10:00', 'todo', 'in_progress'), move('2026-09-22 10:00', 'in_progress', 'todo'), move('2026-10-02 09:00', 'todo', 'in_progress')] }),
+      task({ status: 'todo' }),
+    ], 7, NOW);
+    expect(v.wip.now).toBe(2);
+    expect(v.wip.queue).toBe(1);
+    expect(v.wip.sleFromData).toBe(false);
+    expect(v.wip.sle).toBe(DEFAULT_SLE_DAYS);
+    expect(v.wip.aging.map((a) => [a.ageDays, a.overSle])).toEqual([[8, true], [1, false]]);
+  });
+
+  it('порог — 85-й перцентиль цикла, когда задач достаточно', () => {
+    const v = buildAnalytics([
+      closed('2026-10-01 10:00', '2026-10-01 12:00'),
+      closed('2026-10-01 10:00', '2026-10-01 12:00'),
+      closed('2026-09-30 10:00', '2026-10-01 12:00'),
+      closed('2026-09-30 10:00', '2026-10-01 12:00'),
+      closed('2026-09-22 10:00', '2026-10-01 12:00'),
+      task({ status: 'in_progress', events: [move('2026-09-25 10:00', 'todo', 'in_progress')] }),
+    ], 7, NOW);
+    expect(v.cycle.cycle.p85).toBe(10);
+    expect(v.wip.sleFromData).toBe(true);
+    expect(v.wip.sle).toBe(10);
+    expect(v.wip.aging[0]).toMatchObject({ ageDays: 8, overSle: false });
+  });
+
+  it('в работе без журнала — возраст с создания, помечен как оценка', () => {
+    const v = buildAnalytics([task({ status: 'in_progress', createdAt: at('2026-09-30 10:00') })], 7, NOW);
+    expect(v.wip.aging[0]).toMatchObject({ ageDays: 3, estimated: true });
+  });
+});
+
+describe('блокировки', () => {
+  it('доля времени в блоке считается только внутри периода', () => {
+    // окно: 26.09 00:00 .. 02.10 12:00 = 156 ч; блок 24.09 10:00 .. 27.09 10:00 — внутри окна 34 ч
+    const v = buildAnalytics([
+      task({ events: [{ type: 'blocked', at: at('2026-09-24 10:00') }, { type: 'unblocked', at: at('2026-09-27 10:00') }] }),
+      task({ events: [{ type: 'blocked', at: at('2026-09-21 10:00') }, { type: 'unblocked', at: at('2026-09-22 10:00') }] }),
+    ], 7, NOW);
+    expect(v.blocks.share).toBeCloseTo(34 / (156 * 2), 6);
+    expect(v.blocks.tasks).toBe(1);
+    expect(v.blocks.now).toEqual([]);
+  });
+
+  it('заблокированы сейчас: с журналом — дни, без — неизвестно', () => {
+    const v = buildAnalytics([
+      task({ blocked: true, events: [{ type: 'blocked', at: at('2026-09-30 10:00') }] }),
+      task({ blocked: true }),
+    ], 7, NOW);
+    expect(v.blocks.now.map((b) => b.days)).toEqual([null, 3]);
+    expect(v.blocks.unknownStart).toBe(1);
+    expect(v.blocks.tasks).toBe(2);
+  });
+});
+
+describe('сроки', () => {
+  it('в срок — по дате закрытия в Алматы, просрочка открытых — на сегодня', () => {
+    const v = buildAnalytics([
+      closed(null, '2026-10-01 23:30', { deadline: '2026-10-01' }), // в день дедлайна — вовремя
+      closed(null, '2026-10-01 10:00', { deadline: '2026-09-30' }), // опоздание
+      task({ deadline: '2026-10-01' }), // открыта и просрочена
+      task({ deadline: '2026-10-02' }), // срок сегодня — ещё не просрочена
+    ], 7, NOW);
+    expect(v.kpi.onTime.value).toBe(50);
+    expect(v.deadlines).toEqual({ closed: 2, onTime: 1, overdueOpen: 1 });
   });
 });
 
 describe('фильтр по исполнителю', () => {
-  const tasks = [
-    task({ stars: 5, assignees: [ann, bob] }),
-    task({ stars: 1, assignees: [bob] }),
-    task({ stars: 2, assignees: [] }),
-    task({ stars: 4, assignees: [ann], doneAt: '2026-08-20T05:00:00Z' }), // прошлый период 30 дней: 04.08–02.09
+  const tasks = () => [
+    closed(null, '2026-10-01 10:00', { assignees: [ann], stars: 2 }),
+    closed(null, '2026-10-01 10:00', { assignees: [ann, bob], stars: 4 }),
+    closed(null, '2026-10-01 10:00', { assignees: [] }),
+    task({ status: 'in_progress', assignees: [bob], events: [move('2026-10-01 10:00', 'todo', 'in_progress')] }),
+    closed(null, '2026-08-01 10:00', { assignees: [{ key: 'u:9', userId: 9, username: null, name: 'Старый' }] }), // давно, вне выбора
   ];
 
-  it('считает только задачи выбранного исполнителя, включая прошлый период', () => {
-    const v = buildAnalytics(tasks, 30, NOW, 'u:1');
-    expect(v.kpi.closed).toEqual({ value: 1, prev: 1 });
-    expect(v.kpi.stars).toEqual({ value: 5, prev: 4 });
-    expect(v.byStars[4].closed).toBe(1);
-    expect(v.people.map((p) => p.key)).toEqual(['u:1']);
-  });
-
-  it('«Без исполнителя» — только задачи без исполнителей', () => {
-    const v = buildAnalytics(tasks, 30, NOW, 'none');
-    expect(v.kpi.closed.value).toBe(1);
-    expect(v.kpi.stars.value).toBe(2);
-  });
-
-  it('список исполнителей для фильтра — из обоих периодов, не зависит от фильтра', () => {
-    const all = buildAnalytics(tasks, 30, NOW).assignees;
-    expect(all).toEqual([
-      { key: 'u:1', name: 'Анна Ли' },
-      { key: 'u:2', name: 'Боб Ким' },
-      { key: 'none', name: 'Без исполнителя' },
+  it('без фильтра: люди и варианты', () => {
+    const v = buildAnalytics(tasks(), 7, NOW);
+    expect(v.assignees.map((a) => a.key)).toEqual(['u:1', 'u:2', 'none']);
+    expect(v.people).toEqual([
+      { key: 'u:1', name: 'Анна Ли', closed: 2, stars: 6, wip: 0 },
+      { key: 'u:2', name: 'Боб Ким', closed: 1, stars: 4, wip: 1 },
+      { key: 'none', name: 'Без исполнителя', closed: 1, stars: 3, wip: 0 },
     ]);
-    expect(buildAnalytics(tasks, 30, NOW, 'u:2').assignees).toEqual(all);
+    expect(v.total).toBe(5);
+    const last = v.cfd.points.at(-1)!;
+    expect(last.todo + last.inProgress + last.done).toBe(v.total);
   });
 
-  it('проверка формата ключа фильтра', () => {
-    expect(isAssigneeFilter('u:934716581')).toBe(true);
-    expect(isAssigneeFilter('n:some_user')).toBe(true);
-    expect(isAssigneeFilter('none')).toBe(true);
-    expect(isAssigneeFilter('u:abc')).toBe(false);
-    expect(isAssigneeFilter("n:x'; drop")).toBe(false);
+  it('u:<id> — только задачи человека, варианты не зависят от фильтра', () => {
+    const v = buildAnalytics(tasks(), 7, NOW, 'u:2');
+    expect(v.kpi.closed.value).toBe(1);
+    expect(v.wip.now).toBe(1);
+    expect(v.total).toBe(2);
+    expect(v.people.map((p) => p.key)).toEqual(['u:2']);
+    expect(v.assignees).toHaveLength(3);
+  });
+
+  it('none — только задачи без исполнителя', () => {
+    const v = buildAnalytics(tasks(), 7, NOW, 'none');
+    expect(v.kpi.closed.value).toBe(1);
+    expect(v.wip.now).toBe(0);
   });
 });
