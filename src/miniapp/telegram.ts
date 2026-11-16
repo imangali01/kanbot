@@ -7,6 +7,10 @@ export interface WebApp {
   close(): void;
   disableVerticalSwipes?: () => void;
   openTelegramLink(url: string): void;
+  openLink?: (url: string) => void;
+  isVersionAtLeast?: (version: string) => boolean;
+  /** Bot API 8.0+: Telegram сам скачивает файл в «Загрузки» и показывает окно «Открыть / Показать в папке». */
+  downloadFile?: (params: { url: string; file_name: string }, cb?: (accepted: boolean) => void) => void;
   showConfirm(message: string, cb: (ok: boolean) => void): void;
   setHeaderColor?: (color: string) => void;
   setBackgroundColor?: (color: string) => void;
