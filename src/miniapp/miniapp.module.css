@@ -124,9 +124,14 @@
 .textStatic { composes: textField; white-space: pre-wrap; word-break: break-word; }
 .banner { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0 0; padding: 12px 14px; border-radius: 14px; background: var(--danger-bg); color: var(--danger); font-size: 14px; line-height: 1.4; }
 .banner svg { flex: none; margin-top: 1px; }
-.unlockBtn { flex: none; display: grid; place-items: center; width: 32px; height: 32px; margin: -6px -2px -6px -6px; padding: 0; border: 0; border-radius: 10px; background: rgba(214, 64, 63, 0.1); color: inherit; cursor: pointer; transition: background 0.15s; }
-.unlockBtn:hover:not(:disabled), .unlockBtn:active { background: rgba(214, 64, 63, 0.2); }
-.unlockBtn:disabled { opacity: 0.5; cursor: default; }
+.unlockBtn { flex: none; display: grid; place-items: center; width: 34px; height: 34px; margin: -7px -2px -7px -7px; padding: 0; border: 0; border-radius: 11px; background: rgba(214, 64, 63, 0.16); color: inherit; cursor: pointer; transition: background 0.15s, transform 0.15s; animation: unlockPulse 1.9s ease-out infinite; }
+.unlockBtn svg { transform-origin: 50% 25%; animation: unlockWiggle 1.9s ease-in-out infinite; }
+.unlockBtn:hover:not(:disabled), .unlockBtn:active { background: rgba(214, 64, 63, 0.3); transform: scale(1.06); }
+.unlockBtn:disabled { opacity: 0.5; cursor: default; animation: none; }
+.unlockBtn:disabled svg { animation: none; }
+@keyframes unlockPulse { 0% { box-shadow: inset 0 0 0 1.5px rgba(214, 64, 63, 0.55), 0 0 0 0 rgba(214, 64, 63, 0.45); } 70%, 100% { box-shadow: inset 0 0 0 1.5px rgba(214, 64, 63, 0.55), 0 0 0 10px rgba(214, 64, 63, 0); } }
+@keyframes unlockWiggle { 0%, 55%, 100% { transform: rotate(0); } 62% { transform: rotate(-14deg); } 70% { transform: rotate(12deg); } 78% { transform: rotate(-8deg); } 86% { transform: rotate(4deg); } }
+@media (prefers-reduced-motion: reduce) { .unlockBtn, .unlockBtn svg { animation: none; } }
 .unlockBtn:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
 .bannerBody { flex: 1; min-width: 0; align-self: center; }
 .props { display: flex; flex-direction: column; gap: 2px; margin: 18px 0 6px; }

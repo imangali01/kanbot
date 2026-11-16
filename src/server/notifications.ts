@@ -4,7 +4,7 @@ import { users, type tasks } from '@/db/schema';
 import { buildStartParam, miniAppButton, miniAppLink, taskLinkButtons, type LinkButton } from '@/domain/links';
 import { env } from '@/env';
 import type { Status } from '@/domain/types';
-import { displayName, statusChangedDm, taskAssignedDm, taskCreatedText, taskMovedText, type PersonRef } from '@/telegram/messages';
+import { displayName, taskAssignedDm, taskBlockText, taskCreatedText, taskMovedText, type PersonRef } from '@/telegram/messages';
 import { replyInGroup, sendDm } from '@/telegram/notifier';
 import type { ChatRow } from './chats';
 import { getUsers } from './users';
@@ -60,17 +60,14 @@ export async function notifyTaskMoved(p: { task: TaskRow; chat: ChatRow; actorId
   }
 }
 
-export async function notifyAuthorStatus(
-  task: TaskRow,
-  chat: ChatRow,
-  actorId: number,
-  kind: 'done' | 'blocked',
-  reason?: string,
-): Promise<void> {
-  if (task.authorId === actorId) return;
-  const db = getDb();
-  const [author] = await db.select().from(users).where(eq(users.id, task.authorId));
-  if (!author?.startedBot) return;
-  const [actor] = await db.select().from(users).where(eq(users.id, actorId));
-  await sendDm(author.id, statusChangedDm(kind, task.number, chat.title, task.text, actor ? displayName(actor) : '?', reason, taskUrl(chat.id, task.number)), taskButtons(chat, task.number, task.sourceMessageId));
+/** Задача заблокирована или разблокирована: сообщение в группу и личное сообщение автору и исполнителям (кроме того, кто нажал). */
+export async function notifyTaskBlock(p: { task: TaskRow; chat: ChatRow; actorId: number; assigneeIds: number[]; blocked: boolean; reason: string | null }): Promise<void> {
+  const { task, chat } = p;
+  const [actor] = await getDb().select().from(users).where(eq(users.id, p.actorId));
+  const html = taskBlockText(task.number, actor ? displayName(actor) : '?', p.blocked, p.reason, taskUrl(chat.id, task.number));
+  await replyInGroup(chat.id, task.sourceMessageId, html, boardButton(chat.id, task.number));
+  const recipients = await getUsers([...new Set([task.authorId, ...p.assigneeIds])].filter((id) => id !== p.actorId));
+  for (const u of recipients) {
+    if (u.startedBot) await sendDm(u.id, html, taskButtons(chat, task.number, task.sourceMessageId));
+  }
 }

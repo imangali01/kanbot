@@ -16,7 +16,7 @@ import { getActor, getChat, listMembers, type ChatRow } from './chats';
 import { AccessError } from './errors';
 import { loadEvents, recordEvent } from './events';
 import { loadGroupAttachments, lockMediaGroups } from './media';
-import { notifyAuthorStatus, notifyTaskMoved, taskUrl } from './notifications';
+import { notifyTaskBlock, notifyTaskMoved, taskUrl } from './notifications';
 import { findUserByUsername, upsertUser } from './users';
 
 export type TaskRow = typeof tasks.$inferSelect;
@@ -393,7 +393,7 @@ export async function blockTask(taskId: number, userId: number, reason: string):
     await tx.update(tasks).set({ blocked: true, blockedReason: reason, updatedAt: new Date() }).where(eq(tasks.id, taskId));
     await recordEvent(tx, { taskId, actorId: userId, type: 'blocked', payload: { reason } });
   });
-  if (!ctx.task.blocked) await notifyAuthorStatus(ctx.task, ctx.chat, userId, 'blocked', reason);
+  if (!ctx.task.blocked) await notifyTaskBlock({ task: ctx.task, chat: ctx.chat, actorId: userId, assigneeIds: ctx.ref.assigneeIds, blocked: true, reason });
   return getTaskDetail(taskId, userId);
 }
 
@@ -405,6 +405,7 @@ export async function unblockTask(taskId: number, userId: number): Promise<TaskD
       await tx.update(tasks).set({ blocked: false, blockedReason: null, updatedAt: new Date() }).where(eq(tasks.id, taskId));
       await recordEvent(tx, { taskId, actorId: userId, type: 'unblocked', payload: { reason: ctx.task.blockedReason } });
     });
+    await notifyTaskBlock({ task: ctx.task, chat: ctx.chat, actorId: userId, assigneeIds: ctx.ref.assigneeIds, blocked: false, reason: ctx.task.blockedReason });
   }
   return getTaskDetail(taskId, userId);
 }

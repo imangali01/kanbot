@@ -57,6 +57,14 @@ export function statusChangedDm(
   return lines.join('\n');
 }
 
+export function taskBlockText(number: number, actorName: string, blocked: boolean, reason: string | null, url?: string): string {
+  const head = blocked ? `⛔ Задача ${ticketRef(number, url)} заблокирована` : `🔓 Задача ${ticketRef(number, url)} разблокирована`;
+  const lines = [head];
+  if (reason) lines.push(`${blocked ? 'Причина' : 'Блок был из-за'}: ${escapeHtml(truncate(reason, 300))}`);
+  lines.push(`Кто: ${escapeHtml(actorName)}`);
+  return lines.join('\n');
+}
+
 export function taskMovedText(number: number, actorName: string, from: Status, to: Status, url?: string): string {
   const head = to === 'done' ? `✅ Задача ${ticketRef(number, url)} выполнена` : `🔀 Задача ${ticketRef(number, url)} перенесена`;
   return [head, `${STATUS_TITLES[from]} → ${STATUS_TITLES[to]}`, `Кто: ${escapeHtml(actorName)}`].join('\n');
