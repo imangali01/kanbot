@@ -22,6 +22,13 @@
       "when": 1791364141645,
       "tag": "0002_numerous_doctor_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794810313984,
+      "tag": "0003_pretty_pixie",
+      "breakpoints": true
     }
   ]
 }

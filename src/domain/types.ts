@@ -45,7 +45,14 @@ export interface HistoryItem {
   text: string;
   createdAt: string;
 }
-export interface TaskDetail { card: CardView; comments: CommentView[] }
+export interface AttachmentView {
+  id: number;
+  kind: 'photo' | 'video' | 'animation' | 'audio' | 'voice' | 'document';
+  name: string | null;
+  mime: string | null;
+  size: number | null;
+}
+export interface TaskDetail { card: CardView; comments: CommentView[]; attachments: AttachmentView[] }
 export interface ChatSummary { id: number; title: string }
 
 export type AnalyticsDays = 7 | 30 | 90;

@@ -1,4 +1,5 @@
 import type { ChatMemberUpdated, Message, Update } from 'grammy/types';
+import { extractAttachments, type MessageWithMedia } from '@/domain/attachments';
 import { commandName } from '@/domain/commands';
 import { parseTaskCommand, type IncomingMessage } from '@/domain/parseTaskCommand';
 import { canCreate } from '@/domain/permissions';
@@ -83,6 +84,7 @@ async function onGroupMessage(msg: Message): Promise<void> {
     text: parsed.text,
     assignees: parsed.assignees,
     sourceMessageId: parsed.sourceMessageId,
+    attachments: extractAttachments(msg as unknown as MessageWithMedia),
     now: new Date(),
   });
   await notifyTaskCreated({

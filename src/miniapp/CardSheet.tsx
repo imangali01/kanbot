@@ -5,6 +5,7 @@ import { activeMention, applyMention, filterMembers, splitMentions, type Mention
 import { ticketId } from '@/domain/ticketId';
 import { STATUSES, STATUS_TITLES, type BoardView, type HistoryItem, type Status, type TaskDetail } from '@/domain/types';
 import { api, errorText } from './api';
+import { Attachments } from './Attachments';
 import { Avatar } from './Avatar';
 import { IconCalendar, IconCheck, IconChevronDown, IconHistory, IconLock, IconMore, IconReply, IconSend, IconStar, IconTrash, IconUser, IconUsers } from './icons';
 import { Sheet } from './Sheet';
@@ -419,6 +420,8 @@ export function CardSheet({ taskId, board, onClose, onChanged }: { taskId: numbe
               <button className={s.btnPrimary} style={{ flex: 'none' }} disabled={!blockReason.trim() || busy} onClick={async () => { await run(`/api/app/tasks/${taskId}/block`, 'POST', { reason: blockReason.trim() }); setBlockReason(null); }}>Готово</button>
             </div>
           )}
+
+          <Attachments taskId={taskId} items={detail.attachments} />
 
           <h3 className={s.sectionTitle}>Комментарии</h3>
           <div className={s.comments}>

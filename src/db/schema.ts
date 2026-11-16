@@ -71,7 +71,18 @@ export const comments = pgTable('comments', {
   createdAt: ts('created_at').notNull().defaultNow(),
 }, (t) => [index('comments_task_idx').on(t.taskId)]);
 
-export const taskEvents = pgTable('task_events', {
+export const taskAttachments = pgTable('task_attachments', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  taskId: bigint('task_id', { mode: 'number' }).notNull().references(() => tasks.id, { onDelete: 'cascade' }),
+  kind: text('kind').notNull(),
+  fileId: text('file_id').notNull(),
+  fileUniqueId: text('file_unique_id').notNull(),
+  name: text('name'),
+  mime: text('mime'),
+  size: bigint('size', { mode: 'number' }),
+}, (t) => [index('task_attachments_task_idx').on(t.taskId)]);
+
+export const taskEvents =pgTable('task_events', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   taskId: bigint('task_id', { mode: 'number' }).notNull().references(() => tasks.id, { onDelete: 'cascade' }),
   actorId: tg('actor_id').references(() => users.id, { onDelete: 'set null' }),

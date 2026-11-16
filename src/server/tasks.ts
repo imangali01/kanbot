@@ -1,6 +1,7 @@
 import { and, asc, eq, gte, inArray, ne, sql } from 'drizzle-orm';
 import { getDb } from '@/db/client';
-import { chats, comments, taskAssignees, tasks, users } from '@/db/schema';
+import { chats, comments, taskAssignees, taskAttachments, tasks, users } from '@/db/schema';
+import type { AttachmentInput } from '@/domain/attachments';
 import { analyticsSince, buildAnalytics, type ClosedTask } from '@/domain/analytics';
 import { tomorrow } from '@/domain/dates';
 import { supergroupMessageLink } from '@/domain/links';
@@ -8,7 +9,7 @@ import { placeCard, topPosition } from '@/domain/ordering';
 import type { AssigneeRef } from '@/domain/parseTaskCommand';
 import { mergeHistory } from '@/domain/events';
 import { canChangeAuthor, canComment, canDelete, canEdit, canEditText, canMove, canView, type Actor, type TaskAccessRef } from '@/domain/permissions';
-import type { AnalyticsDays, AnalyticsView, AssigneeView, BoardView, CardView, CommentView, HistoryItem, Status, TaskDetail } from '@/domain/types';
+import type { AnalyticsDays, AnalyticsView, AssigneeView, AttachmentView, BoardView, CardView, CommentView, HistoryItem, Status, TaskDetail } from '@/domain/types';
 import { commentText, displayName, pingText } from '@/telegram/messages';
 import { deleteMessage, replyInGroup } from '@/telegram/notifier';
 import { getActor, getChat, listMembers, type ChatRow } from './chats';
@@ -142,6 +143,7 @@ export async function createTask(input: {
   text: string;
   assignees: AssigneeRef[];
   sourceMessageId: number;
+  attachments?: AttachmentInput[];
   now: Date;
 }): Promise<{ id: number; number: number; deadline: string; assignees: AssigneeRow[] }> {
   const assignees = await resolveRefs(input.assignees);
@@ -175,6 +177,11 @@ export async function createTask(input: {
       })
       .returning({ id: tasks.id });
     if (assignees.length) await tx.insert(taskAssignees).values(assignees.map((a) => ({ taskId: task.id, ...a })));
+    if (input.attachments?.length) {
+      await tx.insert(taskAttachments).values(
+        input.attachments.map((a) => ({ taskId: task.id, kind: a.kind, fileId: a.fileId, fileUniqueId: a.uniqueId, name: a.name, mime: a.mime, size: a.size })),
+      );
+    }
     await recordEvent(tx, {
       taskId: task.id,
       actorId: input.authorId,
@@ -241,9 +248,26 @@ async function loadComments(taskId: number): Promise<CommentView[]> {
   }));
 }
 
+async function loadAttachments(taskId: number): Promise<AttachmentView[]> {
+  const rows = await getDb().select().from(taskAttachments).where(eq(taskAttachments.taskId, taskId)).orderBy(asc(taskAttachments.id));
+  return rows.map((r) => ({ id: r.id, kind: r.kind as AttachmentView['kind'], name: r.name, mime: r.mime, size: r.size }));
+}
+
+/** Вложение задачи для скачивания; доступ проверяется так же, как для просмотра карточки. */
+export async function getAttachmentForDownload(taskId: number, attachmentId: number, userId: number) {
+  await loadContext(taskId, userId);
+  const [row] = await getDb()
+    .select()
+    .from(taskAttachments)
+    .where(and(eq(taskAttachments.id, attachmentId), eq(taskAttachments.taskId, taskId)));
+  if (!row) throw new AccessError(404, 'Вложение не найдено');
+  return row;
+}
+
 export async function getTaskDetail(taskId: number, userId: number): Promise<TaskDetail> {
   const ctx = await loadContext(taskId, userId);
-  return { card: toCardView(ctx.item, ctx.actor), comments: await loadComments(taskId) };
+  const [comments, attachments] = await Promise.all([loadComments(taskId), loadAttachments(taskId)]);
+  return { card: toCardView(ctx.item, ctx.actor), comments, attachments };
 }
 
 export async function getTaskHistory(taskId: number, userId: number): Promise<HistoryItem[]> {

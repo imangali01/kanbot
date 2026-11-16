@@ -279,3 +279,18 @@
 .histMeta { font-size: 12px; color: var(--ink-3); }
 .histWho { font-weight: 600; }
 .histText { word-break: break-word; white-space: pre-wrap; }
+
+/* ───── вложения ───── */
+.thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+.thumb { flex: none; width: 96px; height: 96px; padding: 0; border: 0; border-radius: 12px; overflow: hidden; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); cursor: pointer; }
+.thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.thumb:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.thumbEmpty { flex: none; width: 96px; height: 96px; display: grid; place-items: center; padding: 6px; border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); font-size: 11.5px; text-align: center; color: var(--ink-3); }
+.files { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.fileRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; padding: 0 14px; border: 0; border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); font-size: 14px; text-align: left; cursor: pointer; }
+.fileRow:disabled { opacity: 0.6; cursor: default; }
+.fileRow:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.fileName { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.viewer { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, 0.88); }
+.viewer img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
+.viewerClose { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.16); color: #fff; cursor: pointer; }
