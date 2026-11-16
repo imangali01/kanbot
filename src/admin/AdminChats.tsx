@@ -1,9 +1,10 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import s from '@/app/admin/admin.module.css';
+import { DM_EVENTS, dmEnabled, type DmEvent } from '@/domain/dmEvents';
 import { DISPLAY_NAME_MAX } from '@/domain/displayName';
 import { Avatar } from '@/miniapp/Avatar';
-import { avatarHue } from '@/miniapp/avatarUtils';
+import { GroupAvatar } from '@/miniapp/GroupAvatar';
 import { IconChevronDown } from '@/miniapp/icons';
 import { webApp } from '@/miniapp/telegram';
 
@@ -16,12 +17,13 @@ export interface AdminChat {
   status: 'pending' | 'enabled' | 'disabled';
   creatorsMode: 'all' | 'list';
   creatorIds: number[];
+  dmOff: DmEvent[];
   members: AdminMember[];
 }
 
 export type AdminCall = (path: string, init?: { method?: string; body?: unknown }) => Promise<{ status: number; data: { chats?: AdminChat[]; error?: string } }>;
 
-type ChatPatch = Partial<Pick<AdminChat, 'status' | 'creatorsMode' | 'creatorIds'>>;
+type ChatPatch = Partial<Pick<AdminChat, 'status' | 'creatorsMode' | 'creatorIds' | 'dmOff'>>;
 
 const STATUS_LABEL = { pending: 'Ждёт включения', enabled: 'Работает', disabled: 'Отключён' } as const;
 const dotClass = { pending: s.dot_pending, enabled: s.dot_enabled, disabled: s.dot_disabled } as const;
@@ -112,7 +114,7 @@ function ChatCard({ chat, open, onToggleOpen, onPatch, onRename }: {
     <section className={chat.status === 'pending' ? s.chatPending : s.chat}>
       <div className={s.chatHead}>
         <button className={s.chatToggle} aria-expanded={open} onClick={onToggleOpen}>
-          <span className={s.tile} style={{ '--h': avatarHue(title) } as CSSProperties}>{Array.from(title)[0].toUpperCase()}</span>
+          <GroupAvatar chatId={chat.id} title={title} size={46} admin />
           <span className={s.chatInfo}>
             <span className={s.chatTitle}>{title}</span>
             <span className={s.status}>
@@ -136,6 +138,33 @@ function ChatCard({ chat, open, onToggleOpen, onPatch, onRename }: {
               <button role="radio" aria-checked={listMode} className={listMode ? s.segOn : s.segBtn} onClick={() => onPatch({ creatorsMode: 'list' })}>Выбранные</button>
             </div>
             {listMode && <p className={s.hint}>Отметьте переключателем тех, кто может ставить задачи. Остальные только выполняют.</p>}
+          </div>
+
+          <div className={s.group}>
+            <div className={s.groupLabel}>Личные сообщения</div>
+            <ul className={s.dmList}>
+              {DM_EVENTS.map((e) => {
+                const on = dmEnabled(chat.dmOff, e.key);
+                return (
+                  <li key={e.key} className={s.dmRow}>
+                    <span className={s.dmText}>
+                      <span className={s.dmTitle}>{e.title}</span>
+                      <span className={s.dmHint}>{e.hint}</span>
+                    </span>
+                    <button
+                      className={s.toggle}
+                      role="switch"
+                      aria-checked={on}
+                      aria-label={`${e.title}: присылать в личку`}
+                      onClick={() => onPatch({ dmOff: on ? [...chat.dmOff, e.key] : chat.dmOff.filter((k) => k !== e.key) })}
+                    >
+                      <span className={on ? s.switchOn : s.switch} />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className={s.hint}>Относится только к этой группе. Сообщения в самой группе и код входа в админку не отключаются.</p>
           </div>
 
           <div className={s.group}>

@@ -38,23 +38,54 @@ export function taskCreatedText(number: number, assignees: PersonRef[]): string 
   return `✅ Задача ${ticketId(number)} создана\n${who}`;
 }
 
-export function taskAssignedDm(number: number, chatTitle: string, text: string, deadline: string, url?: string): string {
-  return [`📝 Новая задача ${ticketRef(number, url)} — ${escapeHtml(chatTitle)}`, escapeHtml(truncate(text, 300)), `Дедлайн: ${formatDateRu(deadline)}`].join('\n');
+const STATUS_DOT: Record<Status, string> = { todo: '⚪', in_progress: '🟡', done: '🟢' };
+const statusLabel = (st: Status) => `${STATUS_DOT[st]} ${STATUS_TITLES[st]}`;
+
+/**
+ * Личное уведомление — «виджет»: сверху доска (в личке иначе не понять, откуда пришло), затем событие и номер,
+ * текст задачи цитатой и короткие факты. Значения фактов — обычный текст, экранируются здесь.
+ */
+export interface DmWidget {
+  board: string;
+  icon: string;
+  title: string;
+  number: number;
+  url?: string;
+  text: string;
+  facts: Array<[label: string, value: string]>;
 }
 
-export function statusChangedDm(
-  kind: 'done' | 'blocked',
-  number: number,
-  chatTitle: string,
-  text: string,
-  actorName: string,
-  reason?: string,
-  url?: string,
-): string {
-  const head = kind === 'done' ? `✅ Задача ${ticketRef(number, url)} выполнена` : `⛔ Задача ${ticketRef(number, url)} заблокирована`;
-  const lines = [`${head} — ${escapeHtml(chatTitle)}`, escapeHtml(truncate(text, 200)), `Кто: ${escapeHtml(actorName)}`];
-  if (kind === 'blocked' && reason) lines.push(`Причина: ${escapeHtml(reason)}`);
-  return lines.join('\n');
+export function dmWidget(w: DmWidget): string {
+  return [
+    `🗂 <b>${escapeHtml(truncate(w.board || 'Без названия', 60))}</b>`,
+    `${w.icon} ${w.title} · ${ticketRef(w.number, w.url)}`,
+    '',
+    `<blockquote>${escapeHtml(truncate(w.text, 240))}</blockquote>`,
+    ...w.facts.map(([label, value]) => `<i>${label}:</i> ${escapeHtml(truncate(value, 200))}`),
+  ].join('\n');
+}
+
+export function taskCreatedDm(p: { board: string; number: number; text: string; deadline: string; authorName: string; url?: string }): string {
+  return dmWidget({
+    board: p.board, icon: '🆕', title: '<b>Новая задача для вас</b>', number: p.number, url: p.url, text: p.text,
+    facts: [['Срок', formatDateRu(p.deadline)], ['Поставил', p.authorName]],
+  });
+}
+
+export function taskMovedDm(p: { board: string; number: number; text: string; deadline: string; actorName: string; from: Status; to: Status; url?: string }): string {
+  return dmWidget({
+    board: p.board, icon: p.to === 'done' ? '✅' : '🔀', title: p.to === 'done' ? '<b>Задача выполнена</b>' : '<b>Задача перенесена</b>', number: p.number, url: p.url, text: p.text,
+    facts: [['Статус', `${statusLabel(p.from)} → ${statusLabel(p.to)}`], ['Срок', formatDateRu(p.deadline)], ['Кто', p.actorName]],
+  });
+}
+
+export function taskBlockDm(p: { board: string; number: number; text: string; actorName: string; blocked: boolean; reason: string | null; url?: string }): string {
+  const facts: DmWidget['facts'] = [];
+  if (p.reason) facts.push([p.blocked ? 'Причина' : 'Блок был из-за', p.reason]);
+  facts.push(['Кто', p.actorName]);
+  return dmWidget({
+    board: p.board, icon: p.blocked ? '⛔' : '🔓', title: p.blocked ? '<b>Задача заблокирована</b>' : '<b>Задача разблокирована</b>', number: p.number, url: p.url, text: p.text, facts,
+  });
 }
 
 export function taskBlockText(number: number, actorName: string, blocked: boolean, reason: string | null, url?: string): string {

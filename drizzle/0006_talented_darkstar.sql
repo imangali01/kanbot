@@ -1,0 +1,1 @@
+ALTER TABLE "chats" ADD COLUMN "dm_off" text[] DEFAULT '{}' NOT NULL;

@@ -119,6 +119,10 @@ export async function setCreatorsMode(chatId: number, mode: 'all' | 'list'): Pro
   await getDb().update(chats).set({ creatorsMode: mode }).where(eq(chats.id, chatId));
 }
 
+export async function setDmOff(chatId: number, off: string[]): Promise<void> {
+  await getDb().update(chats).set({ dmOff: off }).where(eq(chats.id, chatId));
+}
+
 export async function setCreators(chatId: number, userIds: number[]): Promise<void> {
   await getDb().transaction(async (tx) => {
     await tx.delete(chatCreators).where(eq(chatCreators.chatId, chatId));

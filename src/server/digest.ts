@@ -3,6 +3,7 @@ import { getDb } from '@/db/client';
 import { chats, taskAssignees, tasks, users } from '@/db/schema';
 import { localDate } from '@/domain/dates';
 import { buildDigests } from '@/domain/digest';
+import { dmEnabled } from '@/domain/dmEvents';
 import type { Status } from '@/domain/types';
 import { formatDigest } from '@/telegram/messages';
 import { sendDm } from '@/telegram/notifier';
@@ -11,11 +12,13 @@ import { taskUrl } from './notifications';
 export async function sendDailyDigests(now: Date): Promise<number> {
   const db = getDb();
   const today = localDate(now);
-  const rows = await db
-    .select({ id: tasks.id, number: tasks.number, text: tasks.text, chatId: chats.id, deadline: tasks.deadline, status: tasks.status, chatTitle: chats.title })
+  const all = await db
+    .select({ id: tasks.id, number: tasks.number, text: tasks.text, chatId: chats.id, deadline: tasks.deadline, status: tasks.status, chatTitle: chats.title, dmOff: chats.dmOff })
     .from(tasks)
     .innerJoin(chats, eq(chats.id, tasks.chatId))
     .where(and(eq(chats.status, 'enabled'), ne(tasks.status, 'done'), lte(tasks.deadline, today)));
+  // группы, где админ выключил сводку, в неё не попадают
+  const rows = all.filter((r) => dmEnabled(r.dmOff, 'digest'));
   if (rows.length === 0) return 0;
 
   const links = await db

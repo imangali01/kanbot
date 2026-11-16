@@ -5,24 +5,27 @@ import { webApp } from './telegram';
 import s from './miniapp.module.css';
 
 // фото группы за сессию грузим один раз: null — у группы нет фото
-const cache = new Map<number, string | null>();
+const cache = new Map<string, string | null>();
 
 /** Аватарка группы из Telegram; пока грузится или если фото нет — цветная плитка с первой буквой названия. */
-export function GroupAvatar({ chatId, title, size = 44 }: { chatId: number; title: string; size?: number }) {
-  const [src, setSrc] = useState<string | null>(cache.get(chatId) ?? null);
+export function GroupAvatar({ chatId, title, size = 44, admin = false }: { chatId: number; title: string; size?: number; admin?: boolean }) {
+  const path = admin ? `/api/admin/chats/${chatId}/photo` : `/api/app/chats/${chatId}/photo`;
+  const [src, setSrc] = useState<string | null>(cache.get(path) ?? null);
 
   useEffect(() => {
-    if (cache.has(chatId)) return;
+    if (cache.has(path)) return;
     let alive = true;
-    fetch(`/api/app/chats/${chatId}/photo`, { headers: { Authorization: `tma ${webApp()?.initData ?? ''}` } })
+    // в Mini App вход по данным Telegram, на сайте админки — по cookie (заголовок тогда не нужен)
+    const initData = webApp()?.initData;
+    fetch(path, { headers: initData ? { Authorization: `tma ${initData}` } : {} })
       .then(async (res) => {
         const url = res.ok ? URL.createObjectURL(await res.blob()) : null;
-        cache.set(chatId, url);
+        cache.set(path, url);
         if (alive) setSrc(url);
       })
       .catch(() => undefined);
     return () => { alive = false; };
-  }, [chatId]);
+  }, [path]);
 
   const box = { width: size, height: size, borderRadius: Math.round(size * 0.32), fontSize: Math.round(size * 0.41) } as CSSProperties;
   if (src) {

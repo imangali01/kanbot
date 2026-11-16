@@ -14,6 +14,8 @@ export const chats = pgTable('chats', {
   lastPinMessageId: tg('last_pin_message_id'),
   /** Админ ли бот в группе: null — ещё не проверяли (проверим при первой команде). Без админа бот не работает. */
   botIsAdmin: boolean('bot_is_admin'),
+  /** Выключенные типы личных уведомлений (см. domain/dmEvents). Пусто — приходят все. */
+  dmOff: text('dm_off').array().notNull().default([]),
   createdAt: ts('created_at').notNull().defaultNow(),
 });
 

@@ -1,10 +1,11 @@
 import { eq } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { users, type tasks } from '@/db/schema';
+import { dmEnabled } from '@/domain/dmEvents';
 import { buildStartParam, miniAppButton, miniAppLink, taskLinkButtons, type LinkButton } from '@/domain/links';
 import { env } from '@/env';
 import type { Status } from '@/domain/types';
-import { displayName, taskAssignedDm, taskBlockText, taskCreatedText, taskMovedText, type PersonRef } from '@/telegram/messages';
+import { displayName, taskBlockDm, taskBlockText, taskCreatedDm, taskCreatedText, taskMovedDm, taskMovedText, type PersonRef } from '@/telegram/messages';
 import { replyInGroup, sendDm } from '@/telegram/notifier';
 import type { ChatRow } from './chats';
 import { getUsers } from './users';
@@ -41,9 +42,11 @@ export async function notifyTaskCreated(p: {
   });
 
   await replyInGroup(p.chat.id, p.sourceMessageId, taskCreatedText(p.taskNumber, people), boardButton(p.chat.id, p.taskNumber));
-  for (const u of known) {
+  const [author] = await getUsers([p.authorId]);
+  const dm = taskCreatedDm({ board: p.chat.title, number: p.taskNumber, text: p.text, deadline: p.deadline, authorName: author ? displayName(author) : '?', url: taskUrl(p.chat.id, p.taskNumber) });
+  for (const u of dmEnabled(p.chat.dmOff, 'created') ? known : []) {
     if (u.startedBot && u.id !== p.authorId) {
-      await sendDm(u.id, taskAssignedDm(p.taskNumber, p.chat.title, p.text, p.deadline, taskUrl(p.chat.id, p.taskNumber)), taskButtons(p.chat, p.taskNumber, p.sourceMessageId));
+      await sendDm(u.id, dm, taskButtons(p.chat, p.taskNumber, p.sourceMessageId));
     }
   }
 }
@@ -54,9 +57,11 @@ export async function notifyTaskMoved(p: { task: TaskRow; chat: ChatRow; actorId
   const [actor] = await getDb().select().from(users).where(eq(users.id, p.actorId));
   const html = taskMovedText(task.number, actor ? displayName(actor) : '?', p.from, p.to, taskUrl(chat.id, task.number));
   if (p.to === 'done') await replyInGroup(chat.id, task.sourceMessageId, html, boardButton(chat.id, task.number));
+  const dm = taskMovedDm({ board: chat.title, number: task.number, text: task.text, deadline: task.deadline, actorName: actor ? displayName(actor) : '?', from: p.from, to: p.to, url: taskUrl(chat.id, task.number) });
+  if (!dmEnabled(chat.dmOff, p.to === 'done' ? 'done' : 'moved')) return;
   const recipients = await getUsers([...new Set([task.authorId, ...p.assigneeIds])].filter((id) => id !== p.actorId));
   for (const u of recipients) {
-    if (u.startedBot) await sendDm(u.id, html, taskButtons(chat, task.number, task.sourceMessageId));
+    if (u.startedBot) await sendDm(u.id, dm, taskButtons(chat, task.number, task.sourceMessageId));
   }
 }
 
@@ -66,8 +71,10 @@ export async function notifyTaskBlock(p: { task: TaskRow; chat: ChatRow; actorId
   const [actor] = await getDb().select().from(users).where(eq(users.id, p.actorId));
   const html = taskBlockText(task.number, actor ? displayName(actor) : '?', p.blocked, p.reason, taskUrl(chat.id, task.number));
   await replyInGroup(chat.id, task.sourceMessageId, html, boardButton(chat.id, task.number));
+  const dm = taskBlockDm({ board: chat.title, number: task.number, text: task.text, actorName: actor ? displayName(actor) : '?', blocked: p.blocked, reason: p.reason, url: taskUrl(chat.id, task.number) });
+  if (!dmEnabled(chat.dmOff, 'blocked')) return;
   const recipients = await getUsers([...new Set([task.authorId, ...p.assigneeIds])].filter((id) => id !== p.actorId));
   for (const u of recipients) {
-    if (u.startedBot) await sendDm(u.id, html, taskButtons(chat, task.number, task.sourceMessageId));
+    if (u.startedBot) await sendDm(u.id, dm, taskButtons(chat, task.number, task.sourceMessageId));
   }
 }

@@ -90,3 +90,10 @@
 /* ───── внутри Mini App ───── */
 .wrapEmbedded { width: min(680px, 100%); margin: 0 auto; padding: 24px 16px 80px; }
 .titleEmbedded { margin: 0; font-size: 28px; font-weight: 650; letter-spacing: -0.025em; }
+
+.dmList { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+.dmRow { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 0; border-top: 1px solid var(--line); }
+.dmRow:first-child { border-top: 0; }
+.dmText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dmTitle { font-size: 15px; font-weight: 550; }
+.dmHint { font-size: 13px; line-height: 1.4; color: var(--ink-3); }

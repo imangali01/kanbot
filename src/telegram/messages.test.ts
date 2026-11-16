@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { commentText, displayName, escapeHtml, formatDigest, helpText, mentionHtml, statusChangedDm, taskAssignedDm, taskCreatedText, taskMovedText, ticketRef, truncate } from './messages';
+import { commentText, displayName, escapeHtml, formatDigest, helpText, mentionHtml, taskBlockDm, taskCreatedDm, taskCreatedText, taskMovedDm, taskMovedText, ticketRef, truncate } from './messages';
 
 describe('messages', () => {
   it('escapes html', () => expect(escapeHtml('<b>&"</b>')).toBe('&lt;b&gt;&amp;"&lt;/b&gt;'));
@@ -64,11 +64,37 @@ describe('ticketRef', () => {
     expect(ticketRef(4, url)).toBe('<a href="https://t.me/bot/board?startapp=c-1_t4">SD-0004</a>');
   });
   it('номер кликабелен в личных сообщениях и дайджесте', () => {
-    expect(taskAssignedDm(4, 'test', 'текст', '2026-10-07', url)).toContain('<a href="' + url + '">SD-0004</a>');
-    expect(statusChangedDm('done', 4, 'test', 'текст', 'Аня', undefined, url)).toContain('выполнена');
-    expect(statusChangedDm('done', 4, 'test', 'текст', 'Аня', undefined, url)).toContain('<a href="' + url + '">SD-0004</a>');
+    expect(taskCreatedDm({ board: 'test', number: 4, text: 'текст', deadline: '2026-10-07', authorName: 'Аня', url })).toContain('<a href="' + url + '">SD-0004</a>');
+    expect(taskMovedDm({ board: 'test', number: 4, text: 'текст', deadline: '2026-10-07', actorName: 'Аня', from: 'in_progress', to: 'done', url })).toContain('<a href="' + url + '">SD-0004</a>');
     const task = { id: 1, number: 4, text: 'x', chatId: -1, chatTitle: 'test', deadline: '2026-10-07', status: 'todo' as const, assigneeIds: [1] };
     expect(formatDigest({ today: [task], overdue: [] }, () => url)).toContain('• <a href="' + url + '">SD-0004</a> x');
+  });
+});
+
+describe('личные уведомления-виджеты', () => {
+  const base = { board: 'Бизнес <аналитика>', number: 5, text: 'Сделать отчёт', deadline: '2026-10-07' };
+  it('первой строкой всегда доска (экранированная), затем событие и номер, затем текст цитатой', () => {
+    const out = taskCreatedDm({ ...base, authorName: 'Аня' }).split('\n');
+    expect(out[0]).toBe('🗂 <b>Бизнес &lt;аналитика&gt;</b>');
+    expect(out[1]).toBe('🆕 <b>Новая задача для вас</b> · SD-0005');
+    expect(out[3]).toBe('<blockquote>Сделать отчёт</blockquote>');
+  });
+  it('перенос показывает откуда и куда, выполнение — отдельный заголовок', () => {
+    const moved = taskMovedDm({ ...base, actorName: 'Аня', from: 'todo', to: 'in_progress' });
+    expect(moved).toContain('<i>Статус:</i> ⚪ Todo → 🟡 In progress');
+    expect(moved).toContain('<b>Задача перенесена</b>');
+    expect(taskMovedDm({ ...base, actorName: 'Аня', from: 'in_progress', to: 'done' })).toContain('✅ <b>Задача выполнена</b>');
+  });
+  it('блокировка: причина и «кто»; разблокировка без причины — только «кто»', () => {
+    const blocked = taskBlockDm({ ...base, actorName: 'Аня', blocked: true, reason: 'жду доступ <к БД>' });
+    expect(blocked).toContain('⛔ <b>Задача заблокирована</b>');
+    expect(blocked).toContain('<i>Причина:</i> жду доступ &lt;к БД&gt;');
+    const free = taskBlockDm({ ...base, actorName: 'Аня', blocked: false, reason: null });
+    expect(free).toContain('🔓 <b>Задача разблокирована</b>');
+    expect(free).not.toContain('Причина');
+  });
+  it('длинный текст задачи обрезается', () => {
+    expect(taskCreatedDm({ ...base, text: 'я'.repeat(500), authorName: 'Аня' }).length).toBeLessThan(600);
   });
 });
 

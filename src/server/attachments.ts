@@ -25,3 +25,17 @@ export function contentDisposition(name: string, inline = false): string {
   const ascii = name.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_');
   return `${inline ? 'inline' : 'attachment'}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`;
 }
+
+/** Аватарка группы из Telegram (маленький размер). Нет фото — 404, клиент рисует букву. */
+export async function fetchChatPhoto(chatId: number): Promise<Response> {
+  let photoId: string | undefined;
+  try {
+    photoId = (await tg().getChat(chatId)).photo?.small_file_id;
+  } catch {
+    photoId = undefined;
+  }
+  if (!photoId) throw new AccessError(404, 'У группы нет фото');
+  return fetchTelegramFile({ fileId: photoId, size: null });
+}
+
+export const PHOTO_HEADERS = { 'Content-Type': 'image/jpeg', 'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff' };
