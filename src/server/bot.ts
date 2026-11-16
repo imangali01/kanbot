@@ -69,11 +69,10 @@ async function onGroupMessage(msg: Message): Promise<void> {
   }
   if (!msg.from || msg.from.is_bot) return;
 
-  // без прав администратора бот не работает: на свои команды отвечает просьбой, остальное игнорирует
+  // админ нужен только там, где создаётся задача (/task): без него отвечаем просьбой; остальное работает как раньше
   const cmd = commandName(msg.text ?? msg.caption, env.botUsername);
-  const addressed = cmd === 'task' || cmd === 'help';
-  if (!(await botIsAdmin(chat, addressed))) {
-    if (addressed) await replyInGroup(chat.id, msg.message_id, ADMIN_REQUEST_TEXT);
+  if (cmd === 'task' && !(await botIsAdmin(chat, true))) {
+    await replyInGroup(chat.id, msg.message_id, ADMIN_REQUEST_TEXT);
     return;
   }
 
