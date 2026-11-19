@@ -10,7 +10,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "webhook:set": "node --env-file=.env.local scripts/set-webhook.mjs",
-    "bot:profile": "node --env-file=.env.local scripts/set-bot-profile.mjs"
+    "bot:profile": "node --env-file=.env.local scripts/set-bot-profile.mjs",
+    "icons": "node scripts/icons.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
